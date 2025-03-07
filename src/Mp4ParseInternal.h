@@ -90,7 +90,7 @@ public:
     virtual std::string getErrorMessage() override;
 
     virtual MP4_TYPE_E  getMp4Type() const override { return mMp4Type; }
-    virtual std::string getFileName() const override { return mFileReader.getFileFullPath(); }
+    virtual std::string getFilePath() const override { return mFileReader.getFileFullPath(); }
     virtual float       getParseProgress() const override;
 
     const std::vector<BoxPtr> getBoxes() const override;

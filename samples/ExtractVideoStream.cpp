@@ -1,34 +1,12 @@
 
 #include <string>
+#include <iostream>
+#include <fstream>
+#include <filesystem>
 
 #include "Mp4Parse.h"
-
 using namespace std;
-static void splitpath(std::string &path, std::string &drv, std::string &dir, std::string &name, std::string &ext)
-{
-    uint64_t drv_pos  = path.find(':');
-    uint64_t name_pos = path.rfind('/');
-    if (string::npos == name_pos)
-        name_pos = path.rfind('\\');
-    uint64_t ext_pos = path.rfind('.');
-
-    if (drv_pos != string::npos)
-        drv = path.substr(0, ++drv_pos);
-    else
-        drv_pos = 0;
-
-    if (name_pos != string::npos)
-        dir = path.substr(drv_pos, ++name_pos - drv_pos);
-    else
-        name_pos = 0;
-
-    if (ext_pos != string::npos)
-        ext = path.substr(ext_pos, path.length() - ext_pos);
-    else
-        ext_pos = path.length();
-
-    name = path.substr(name_pos, ext_pos - name_pos);
-}
+namespace fs = std::filesystem;
 
 int main(int argc, char **argv)
 {
@@ -42,13 +20,13 @@ int main(int argc, char **argv)
 
     int ret = 0;
 
-    string mp4_file(argv[1]);
+    string mp4FilePath(argv[1]);
 
-    ret = mp4Parser->parse(mp4_file);
+    ret = mp4Parser->parse(mp4FilePath);
 
     if (ret < 0 || !mp4Parser->isParseSuccess())
     {
-        printf("parse %s fail: \n", mp4_file.c_str());
+        printf("parse %s fail: \n", mp4FilePath.c_str());
         string err_msg = mp4Parser->getErrorMessage();
         while (!err_msg.empty())
         {
@@ -65,15 +43,12 @@ int main(int argc, char **argv)
         printf("nothing found\n");
     }
 
-    string fileName, ext, path, drive;
+    fs::path filePath(mp4FilePath);
 
-    splitpath(mp4_file, drive, path, fileName, ext);
-
-    string outPath;
-    outPath = drive + path;
-
-    string outname;
-    string outnameAudio;
+    string outPath      = filePath.parent_path().string() + "/";
+    string fileBaseName = filePath.stem().string();
+    string videoOutFilePath;
+    string audioOutFilePath;
 
     int  videoTrackIdx = -1;
     int  audioTrackIdx = -1;
@@ -95,28 +70,30 @@ int main(int argc, char **argv)
 
     uint8_t codec = tracksInfo[videoTrackIdx]->mediaInfo->codecCode;
     if (mp4GetCodecType(codec) == MP4_CODEC_H264)
-        outname = outPath + fileName + ".h264";
+        videoOutFilePath = outPath + fileBaseName + ".h264";
     else if (mp4GetCodecType(codec) == MP4_CODEC_HEVC)
-        outname = outPath + fileName + ".h265";
+        videoOutFilePath = outPath + fileBaseName + ".h265";
     else
-        outname = outPath + fileName + ".stream";
+        videoOutFilePath = outPath + fileBaseName + ".stream";
 
-    FILE *audioFp = nullptr;
-    FILE *fp      = fopen(outname.c_str(), "wb+");
-    if (!fp)
+    ofstream audioFile;
+    ofstream videoFile;
+    videoFile.open(videoOutFilePath, ios_base::out | ios_base::binary | ios_base::trunc);
+    if (!videoFile.is_open())
         return 0;
+
     if (audioTrackIdx >= 0)
     {
         codec = tracksInfo[audioTrackIdx]->mediaInfo->codecCode;
         if (MP4_CODEC_AAC == mp4GetCodecType(codec))
         {
-            outnameAudio = outPath + fileName + ".aac";
+            audioOutFilePath = outPath + fileBaseName + ".aac";
         }
         else
         {
-            outnameAudio = outPath + fileName + "_audio.stream";
+            audioOutFilePath = outPath + fileBaseName + "_audio.stream";
         }
-        audioFp = fopen(outnameAudio.c_str(), "wb+");
+        audioFile.open(audioOutFilePath, ios_base::out | ios_base::binary | ios_base::trunc);
     }
     unsigned long long wrSize = 0;
     for (uint32_t sampleIdx = 0; sampleIdx < tracksInfo[videoTrackIdx]->mediaInfo->samplesInfo.size(); sampleIdx++)
@@ -125,11 +102,17 @@ int main(int argc, char **argv)
         ret = mp4Parser->getVideoSample(videoTrackIdx, sampleIdx, frame);
         if (ret < 0)
             break;
-        wrSize += fwrite(frame.sampleData.get(), 1, frame.dataSize, fp);
+        videoFile.write((char *)frame.sampleData.get(), frame.dataSize);
+        if (videoFile.fail())
+        {
+            printf("Writing to file failed.");
+            break;
+        }
+        wrSize += frame.dataSize;
         fprintf(stderr, "\rWriting %lld...", wrSize);
     }
 
-    if (audioTrackIdx >= 0 && audioFp)
+    if (audioTrackIdx >= 0 && audioFile.is_open())
     {
         for (uint32_t sampleIdx = 0; sampleIdx < tracksInfo[audioTrackIdx]->mediaInfo->samplesInfo.size(); sampleIdx++)
         {
@@ -137,14 +120,18 @@ int main(int argc, char **argv)
             ret = mp4Parser->getAudioSample(audioTrackIdx, sampleIdx, frame);
             if (ret < 0)
                 break;
-            wrSize += fwrite(frame.sampleData.get(), 1, frame.dataSize, fp);
-            fwrite(frame.sampleData.get(), 1, frame.dataSize, audioFp);
+            audioFile.write((char *)frame.sampleData.get(), frame.dataSize);
+            if (audioFile.fail())
+            {
+                printf("Writing to file failed.");
+                break;
+            }
         }
     }
 
-    fclose(fp);
-    if (audioFp)
-        fclose(audioFp);
+    videoFile.close();
+    if (audioFile.is_open())
+        audioFile.close();
 
     fprintf(stderr, "\nFinish\n");
 

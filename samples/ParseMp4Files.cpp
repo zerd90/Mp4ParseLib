@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
 #include <fcntl.h>
 
@@ -27,89 +26,68 @@ int createDir(const char *path)
     return 0;
 }
 
-void generateResultTable(Mp4ParserHandle mp4_info, string path)
+void generateResultTable(Mp4ParserHandle mp4_info, string dirPath)
 {
-    int    ret = 0;
-    char   fn[200];
-    string real_fn;
+    int ret = 0;
 
-    if (createDir(path.c_str()) < 0)
+    if (createDir(dirPath.c_str()) < 0)
     {
-        printf("dir %s create fail\n", path.c_str());
+        printf("dir %s create fail\n", dirPath.c_str());
         return;
     }
-    auto tracksInfo = mp4_info->getTracksInfo();
-
-    string prefix;
-    string fileName = mp4_info->getFileName();
-    size_t slash    = fileName.rfind('\\');
-    if (slash == string::npos)
-    {
-        slash = fileName.rfind('/');
-        if (slash == string::npos)
-        {
-            slash = 0;
-        }
-        else
-        {
-            slash++;
-        }
-    }
-    else
-    {
-        slash++;
-    }
-    prefix = fileName.substr(slash, fileName.rfind('.') - slash);
+    auto     tracksInfo = mp4_info->getTracksInfo();
+    fs::path mp4FilePath(mp4_info->getFilePath());
+    string   prefix = mp4FilePath.stem().string();
     for (unsigned int i = 0; i < tracksInfo.size(); ++i)
     {
         auto          curTrackMedia = tracksInfo[i]->mediaInfo;
-        std::ofstream res_fp;
-
-        snprintf(fn, 200, "%s/%s_track_%d.csv", path.c_str(), prefix.c_str(), i + 1);
-        real_fn = fn;
-        res_fp.open(real_fn);
-        if (!res_fp)
+        std::ofstream trackInfoFile;
+        string        trackInfoFilePath = dirPath + "/" + prefix + "_track_" + std::to_string(i + 1) + ".csv";
+        trackInfoFile.open(trackInfoFilePath, std::ios_base::out | std::ios_base::trunc);
+        if (!trackInfoFile.is_open())
         {
-            printf("can't open %s: %s\n", real_fn.c_str(), strerror(errno));
+            printf("can't open %s: %s\n", trackInfoFilePath.c_str(), strerror(errno));
             break;
         }
 
-        res_fp << "sampleIdx, offset, size, pts(ms), dts(ms), dts_delta(ms), frame_type, nalu_type, isKeyFrame,"
-                  ",chunk_idx, offset, size, sample_start, sampleCount, start_pts(ms), delta(ms), avg_bitrate(Kbps)"
-               << std::endl;
+        trackInfoFile
+            << "sampleIdx, offset, size, pts(ms), dts(ms), dts_delta(ms), frame_type, nalu_type, isKeyFrame,"
+               ",chunk_idx, offset, size, sample_start, sampleCount, start_pts(ms), delta(ms), avg_bitrate(Kbps)"
+            << std::endl;
         for (unsigned int j = 0; j < curTrackMedia->samplesInfo.size(); j++)
         {
-            res_fp << curTrackMedia->samplesInfo[j].sampleIdx << ","
-                   << "0x" << std::hex << curTrackMedia->samplesInfo[j].sampleOffset << ","
-                   << "0x" << curTrackMedia->samplesInfo[j].sampleSize << std::dec << ","
-                   << curTrackMedia->samplesInfo[j].ptsMs << "," << curTrackMedia->samplesInfo[j].dtsMs << ","
-                   << curTrackMedia->samplesInfo[j].dtsDeltaMs << ", ";
+            trackInfoFile << curTrackMedia->samplesInfo[j].sampleIdx << ","
+                          << "0x" << std::hex << curTrackMedia->samplesInfo[j].sampleOffset << ","
+                          << "0x" << curTrackMedia->samplesInfo[j].sampleSize << std::dec << ","
+                          << curTrackMedia->samplesInfo[j].ptsMs << "," << curTrackMedia->samplesInfo[j].dtsMs << ","
+                          << curTrackMedia->samplesInfo[j].dtsDeltaMs << ", ";
             auto codecType = mp4GetCodecType(curTrackMedia->codecCode);
-            res_fp << mp4GetFrameTypeStr(curTrackMedia->samplesInfo[j].frameType) << ", ";
+            trackInfoFile << mp4GetFrameTypeStr(curTrackMedia->samplesInfo[j].frameType) << ", ";
             for (int i = 0; i < curTrackMedia->samplesInfo[j].naluTypes.size(); i++)
             {
-                res_fp << mp4GetNaluTypeStr(codecType, curTrackMedia->samplesInfo[j].naluTypes[i]);
+                trackInfoFile << mp4GetNaluTypeStr(codecType, curTrackMedia->samplesInfo[j].naluTypes[i]);
                 if (i < curTrackMedia->samplesInfo[j].naluTypes.size() - 1)
                 {
-                    res_fp << "|";
+                    trackInfoFile << "|";
                 }
             }
-            res_fp << ", " << curTrackMedia->samplesInfo[j].isKeyFrame;
+            trackInfoFile << ", " << curTrackMedia->samplesInfo[j].isKeyFrame;
             if (j < curTrackMedia->chunksInfo.size())
             {
-                res_fp << ",," << curTrackMedia->chunksInfo[j].chunkIdx << ","
-                       << (unsigned long long)curTrackMedia->chunksInfo[j].chunkOffset << ","
-                       << (unsigned int)curTrackMedia->chunksInfo[j].chunkSize << ","
-                       << curTrackMedia->chunksInfo[j].sampleStartIdx << "," << curTrackMedia->chunksInfo[j].sampleCount
-                       << "," << curTrackMedia->chunksInfo[j].startPtsMs << ","
-                       << curTrackMedia->chunksInfo[j].durationMs << ","
-                       << curTrackMedia->chunksInfo[j].avgBitrateBps / 1024.;
+                trackInfoFile << ",," << curTrackMedia->chunksInfo[j].chunkIdx << ","
+                              << (unsigned long long)curTrackMedia->chunksInfo[j].chunkOffset << ","
+                              << (unsigned int)curTrackMedia->chunksInfo[j].chunkSize << ","
+                              << curTrackMedia->chunksInfo[j].sampleStartIdx << ","
+                              << curTrackMedia->chunksInfo[j].sampleCount << ","
+                              << curTrackMedia->chunksInfo[j].startPtsMs << ","
+                              << curTrackMedia->chunksInfo[j].durationMs << ","
+                              << curTrackMedia->chunksInfo[j].avgBitrateBps / 1024.;
             }
 
-            res_fp << std::endl;
+            trackInfoFile << std::endl;
         }
-        res_fp.close();
-        printf("%s\n", real_fn.c_str());
+        trackInfoFile.close();
+        printf("%s\n", trackInfoFilePath.c_str());
     }
 }
 
@@ -121,21 +99,28 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    int file_idx;
+    int fileIdx;
 
     Mp4ParserHandle mp4Parser = createMp4Parser();
 
-    for (file_idx = 1; file_idx < argc; ++file_idx)
+    for (fileIdx = 1; fileIdx < argc; ++fileIdx)
     {
         int ret = 0;
 
-        string mp4_file(argv[file_idx]);
+        string mp4FilePath(argv[fileIdx]);
+        if (!fs::exists(mp4FilePath))
+        {
+            printf("file %s not exist\n", mp4FilePath.c_str());
+            continue;
+        }
 
-        ret = mp4Parser->parse(mp4_file);
+        printf("parse %s\n", mp4FilePath.c_str());
+
+        ret = mp4Parser->parse(mp4FilePath);
 
         if (ret < 0 || !mp4Parser->isParseSuccess())
         {
-            printf("parse %s fail: \n", mp4_file.c_str());
+            printf("parse %s fail: \n", mp4FilePath.c_str());
             string err_msg = mp4Parser->getErrorMessage();
             while (!err_msg.empty())
             {
@@ -154,12 +139,10 @@ int main(int argc, char **argv)
             continue;
         }
 
-        string   baseName, dirPath;
-        fs::path filePath(mp4_file);
-        dirPath  = filePath.parent_path().string();
-        baseName = filePath.stem().string();
-        string outPath;
-        outPath = dirPath + "/" + baseName;
+        fs::path filePath(mp4FilePath);
+        string   dirPath    = filePath.parent_path().string();
+        string   baseName   = filePath.stem().string();
+        string   outDirPath = dirPath + "/" + baseName;
 
         auto tracksInfo = mp4Parser->getTracksInfo();
         for (int i = 0; i < tracksInfo.size(); i++)
@@ -175,7 +158,7 @@ int main(int argc, char **argv)
             }
         }
 
-        generateResultTable(mp4Parser, outPath);
+        generateResultTable(mp4Parser, outDirPath);
     }
 
     printf("Press Enter to Exit\n");

@@ -17,7 +17,7 @@ public:
     virtual bool        isParseSuccess() const = 0;
     virtual std::string getErrorMessage()      = 0;
 
-    virtual std::string getFileName() const      = 0;
+    virtual std::string getFilePath() const      = 0;
     virtual float       getParseProgress() const = 0;
     virtual MP4_TYPE_E  getMp4Type() const       = 0;
 

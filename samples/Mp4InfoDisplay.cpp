@@ -6,33 +6,9 @@
 #include <vector>
 #include <string>
 
-using std::string;
-
-#ifdef USE_NCURSESW
-    #include "ncurses.h"
-#endif
-
 #include "Mp4Parse.h"
 
-using namespace std;
-
-#ifdef __linux
-    #ifndef _getch
-char _getch()
-{
-    char a;
-    int  ret;
-    ret = system("stty -icanon"); // 无缓冲
-    ret = system("stty -echo");   // 无回显
-    a   = getchar();
-    ret = system("stty icanon"); // 恢复
-    ret = system("stty echo");
-    return a;
-}
-    #endif
-#else
-    #include <conio.h>
-#endif
+using std::string;
 
 #define output_tab(fp, n)            \
     for (int _i = 0; _i < (n); ++_i) \
@@ -91,8 +67,6 @@ void display(Mp4ParserHandle parser, FILE *outStream)
 {
     auto file = parser->asBox();
     printBoxProperty(file.get(), 0, outStream);
-    printf("Press Any Key to Exit\n");
-    _getch();
 }
 
 int main(int argc, char **argv)
@@ -104,8 +78,8 @@ int main(int argc, char **argv)
     }
 
     Mp4ParserHandle mp4Parser = createMp4Parser();
-    int                       ret        = 0;
-    string                    mp4File(argv[1]);
+    int             ret       = 0;
+    string          mp4File(argv[1]);
 
     FILE *outStream = stderr;
 
