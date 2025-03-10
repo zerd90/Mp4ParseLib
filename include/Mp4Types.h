@@ -25,7 +25,7 @@ struct Mp4Box
 
     virtual std::shared_ptr<Mp4BoxData> getData(std::shared_ptr<Mp4BoxData> src = nullptr) const = 0;
 };
-using BoxPtr = std::shared_ptr<const Mp4Box>;
+using Mp4BoxPtr = std::shared_ptr<const Mp4Box>;
 
 enum MP4_TYPE_E
 {
@@ -238,7 +238,7 @@ struct Mp4MediaInfo
     std::vector<uint64_t>      syncSampleTable;
 
     virtual std::shared_ptr<Mp4BoxData> getData(std::shared_ptr<Mp4BoxData> src = nullptr) const;
-    virtual int                         getInfoFromTrack(BoxPtr pTrakBox, TrackInfoPtr trak);
+    virtual int                         getInfoFromTrack(Mp4BoxPtr pTrakBox, TrackInfoPtr trak);
     virtual std::string                 getInfoString();
 };
 
@@ -253,7 +253,7 @@ struct Mp4VideoInfo : public Mp4MediaInfo
     uint32_t level         = 0;
 
     virtual std::shared_ptr<Mp4BoxData> getData(std::shared_ptr<Mp4BoxData> src = nullptr) const override;
-    int                                 getInfoFromTrack(BoxPtr pTrakBox, TrackInfoPtr trak) override;
+    int                                 getInfoFromTrack(Mp4BoxPtr pTrakBox, TrackInfoPtr trak) override;
     std::string                         getInfoString() override;
 };
 
@@ -265,7 +265,7 @@ struct Mp4AudioInfo : public Mp4MediaInfo
     int audioSampleSize = 0;
 
     virtual std::shared_ptr<Mp4BoxData> getData(std::shared_ptr<Mp4BoxData> src = nullptr) const override;
-    int                                 getInfoFromTrack(BoxPtr pTrakBox, TrackInfoPtr trak) override;
+    int                                 getInfoFromTrack(Mp4BoxPtr pTrakBox, TrackInfoPtr trak) override;
     std::string                         getInfoString() override;
 };
 

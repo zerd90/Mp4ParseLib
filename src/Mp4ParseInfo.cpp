@@ -316,12 +316,12 @@ H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t 
     if (trackIdx >= tracksInfo.size())
         return H26X_FRAME_Unknown;
 
-    TrackInfoPtr Mp4TrackInfo = tracksInfo[trackIdx];
+    TrackInfoPtr mp4TrackInfo = tracksInfo[trackIdx];
 
-    if (Mp4TrackInfo->trackType != TRACK_TYPE_VIDEO)
+    if (mp4TrackInfo->trackType != TRACK_TYPE_VIDEO)
         return H26X_FRAME_Unknown;
 
-    MP4_CODEC_TYPE_E codecType = mp4GetCodecType(Mp4TrackInfo->mediaInfo->codecCode);
+    MP4_CODEC_TYPE_E codecType = mp4GetCodecType(mp4TrackInfo->mediaInfo->codecCode);
     if (MP4_CODEC_H264 != codecType && MP4_CODEC_HEVC != codecType)
         return H26X_FRAME_Unknown;
 
@@ -330,7 +330,7 @@ H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t 
     if (codecType != MP4_CODEC_H264 && codecType != MP4_CODEC_HEVC)
         return H26X_FRAME_Unknown;
 
-    Mp4SampleItem *curSample = &Mp4TrackInfo->mediaInfo->samplesInfo[sampleIdx];
+    Mp4SampleItem *curSample = &mp4TrackInfo->mediaInfo->samplesInfo[sampleIdx];
     uint64_t       oldPos    = mFileReader.getCursorPos();
     mFileReader.setCursor(curSample->sampleOffset);
     uint64_t last = curSample->sampleOffset + curSample->sampleSize;
@@ -448,7 +448,7 @@ H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t 
 
 int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
 {
-    auto         Mp4TrackInfo = tracksInfo[trackIdx];
+    auto         mp4TrackInfo = tracksInfo[trackIdx];
     CommonBoxPtr pTrakBox     = nullptr;
 
     CommonBoxPtr            stbl;
@@ -481,7 +481,7 @@ int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
     stbl = pTrakBox->getContainBoxRecursive("stbl", 3);
     if (stbl == nullptr)
     {
-        MP4_ERR("%d stbl not parsed\n", Mp4TrackInfo->trackId);
+        MP4_ERR("%d stbl not parsed\n", mp4TrackInfo->trackId);
         return -1;
     }
 
@@ -494,15 +494,15 @@ int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
 
     if (MP4_TYPE_ISO == mMp4Type)
     {
-        CHECK_RET(generateISOInfoTable(Mp4TrackInfo));
+        CHECK_RET(generateIsoSamplesInfoTable(mp4TrackInfo->trakIndex));
     }
     else
     {
-        CHECK_RET(generateFragmentInfoTable(Mp4TrackInfo->trackId - 1));
+        CHECK_RET(generateFragmentSamplesInfoTable(mp4TrackInfo->trakIndex));
     }
 
-    if (Mp4TrackInfo->mediaInfo != nullptr)
-        Mp4TrackInfo->mediaInfo->getInfoFromTrack(pTrakBox, Mp4TrackInfo);
+    if (mp4TrackInfo->mediaInfo != nullptr)
+        mp4TrackInfo->mediaInfo->getInfoFromTrack(pTrakBox, mp4TrackInfo);
 
     MP4_CODEC_TYPE_E codecType = getCodecTypeFromStsd(stsd);
     if (codecType != MP4_CODEC_H264 && codecType != MP4_CODEC_HEVC)
@@ -564,17 +564,16 @@ int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
         mNaluLengthSize[trackIdx]    = hvcC->HEVCConfig.lengthSize;
     }
 
-    MP4_DBG("track%d NaluLengthSize=%d\n", Mp4TrackInfo->trackId, mNaluLengthSize[trackIdx]);
+    MP4_DBG("track%d NaluLengthSize=%d\n", mp4TrackInfo->trackId, mNaluLengthSize[trackIdx]);
 
     return 0;
 }
 
-int MP4ParserImpl::generateISOInfoTable(TrackInfoPtr track)
+int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
 {
     uint32_t     chunkCount;
     uint32_t     sampleCount;
     CommonBoxPtr pTrakBox;
-
     do
     {
         auto pMoov = getContainBox("moov");
@@ -584,13 +583,13 @@ int MP4ParserImpl::generateISOInfoTable(TrackInfoPtr track)
             break;
         }
         auto pTrakBoxes = pMoov->getContainBoxes("trak");
-        if (track->trakIndex >= pTrakBoxes.size())
+        if (trackIdx >= pTrakBoxes.size())
         {
-            MP4_ERR("trak Index Too Big %d %zu\n", track->trakIndex, pTrakBoxes.size());
+            MP4_ERR("trak Index Too Big %llu %zu\n", trackIdx, pTrakBoxes.size());
             break;
         }
 
-        pTrakBox = pTrakBoxes[track->trakIndex];
+        pTrakBox = pTrakBoxes[trackIdx];
 
     } while (0);
 
@@ -600,12 +599,15 @@ int MP4ParserImpl::generateISOInfoTable(TrackInfoPtr track)
         return -1;
     }
 
+    Mp4TrackInfo *trackInfo = tracksInfo[trackIdx].get();
+    Mp4MediaInfo *trackMediaInfo = trackInfo->mediaInfo.get();
+
     CommonBoxPtr      stbl = pTrakBox->getContainBoxRecursive("stbl", 3);
     MediaHeaderBoxPtr mdhd = pTrakBox->getContainBoxRecursive<MediaHeaderBox>("mdhd");
 
     if (stbl == nullptr)
     {
-        MP4_ERR("%d stbl not parsed\n", track->trackId);
+        MP4_ERR("%llu stbl not parsed\n", trackIdx);
         return -1;
     }
 
@@ -633,7 +635,7 @@ int MP4ParserImpl::generateISOInfoTable(TrackInfoPtr track)
         MP4_ERR("necessary box not parsed\n");
         return -1;
     }
-    else if (track->trackType == TRACK_TYPE_VIDEO && (codeType == MP4_CODEC_H264 || codeType == MP4_CODEC_HEVC)
+    else if (trackInfo->trackType == TRACK_TYPE_VIDEO && (codeType == MP4_CODEC_H264 || codeType == MP4_CODEC_HEVC)
              && stss == nullptr)
     {
         MP4_ERR("necessary box not parsed\n");
@@ -686,7 +688,7 @@ int MP4ParserImpl::generateISOInfoTable(TrackInfoPtr track)
             }
         }
         curChunk.chunkSize = 0;
-        track->mediaInfo->chunksInfo.push_back(curChunk);
+        trackMediaInfo->chunksInfo.push_back(curChunk);
     }
 
     if (chunkCount == 0)
@@ -694,7 +696,7 @@ int MP4ParserImpl::generateISOInfoTable(TrackInfoPtr track)
 
     sampleCount           = (stsz ? stsz : stz2)->entryCount;
     uint32_t curChunkIdx  = 0;
-    uint64_t sampleOffset = track->mediaInfo->chunksInfo[curChunkIdx].chunkOffset;
+    uint64_t sampleOffset = trackMediaInfo->chunksInfo[curChunkIdx].chunkOffset;
     uint32_t stssIdx      = 0;
     uint32_t sttsIdx      = 0;
     uint32_t sttsCount    = stts->getEntry<sttsItem>(sttsIdx)->sampleCount;
@@ -710,11 +712,11 @@ int MP4ParserImpl::generateISOInfoTable(TrackInfoPtr track)
 
     for (unsigned int i = 0; i < sampleCount; ++i)
     {
-        if (i >= track->mediaInfo->chunksInfo[curChunkIdx].sampleStartIdx
-                     + track->mediaInfo->chunksInfo[curChunkIdx].sampleCount)
+        if (i >= trackMediaInfo->chunksInfo[curChunkIdx].sampleStartIdx
+                     + trackMediaInfo->chunksInfo[curChunkIdx].sampleCount)
         {
             curChunkIdx++;
-            sampleOffset = track->mediaInfo->chunksInfo[curChunkIdx].chunkOffset;
+            sampleOffset = trackMediaInfo->chunksInfo[curChunkIdx].chunkOffset;
         }
         Mp4SampleItem curSample;
         curSample.sampleIdx = i;
@@ -723,7 +725,7 @@ int MP4ParserImpl::generateISOInfoTable(TrackInfoPtr track)
             if (i == nextIframeIdx)
             {
                 curSample.isKeyFrame = 1;
-                track->mediaInfo->syncSampleTable.push_back(i);
+                trackMediaInfo->syncSampleTable.push_back(i);
                 stssIdx++;
                 if (stssIdx < stss->entryCount)
                 {
@@ -782,16 +784,16 @@ int MP4ParserImpl::generateISOInfoTable(TrackInfoPtr track)
         curSample.sampleOffset = sampleOffset;
         sampleOffset += curSample.sampleSize;
 
-        track->mediaInfo->chunksInfo[curChunkIdx].chunkSize += curSample.sampleSize;
+        trackMediaInfo->chunksInfo[curChunkIdx].chunkSize += curSample.sampleSize;
 
-        track->mediaInfo->samplesInfo.push_back(curSample);
+        trackMediaInfo->samplesInfo.push_back(curSample);
     }
 
-    for (unsigned int i = 0; i < track->mediaInfo->chunksInfo.size(); ++i)
+    for (unsigned int i = 0; i < trackMediaInfo->chunksInfo.size(); ++i)
     {
-        Mp4ChunkItem  &curChunk    = track->mediaInfo->chunksInfo[i];
-        Mp4SampleItem &startSample = track->mediaInfo->samplesInfo[curChunk.sampleStartIdx];
-        Mp4SampleItem &endSample   = track->mediaInfo->samplesInfo[curChunk.sampleStartIdx + curChunk.sampleCount - 1];
+        Mp4ChunkItem  &curChunk    = trackMediaInfo->chunksInfo[i];
+        Mp4SampleItem &startSample = trackMediaInfo->samplesInfo[curChunk.sampleStartIdx];
+        Mp4SampleItem &endSample   = trackMediaInfo->samplesInfo[curChunk.sampleStartIdx + curChunk.sampleCount - 1];
         curChunk.startPtsMs        = startSample.dtsMs;
         curChunk.durationMs        = endSample.dtsMs + endSample.dtsDeltaMs - curChunk.startPtsMs;
         curChunk.avgBitrateBps     = (double)curChunk.chunkSize * 8 * 1000 / curChunk.durationMs;
@@ -891,7 +893,7 @@ uint32_t MP4ParserImpl::fragmentGetSampleCompositionOffset(TrackRunBoxPtr pTrunB
     }
 }
 
-int MP4ParserImpl::generateFragmentInfoTable(uint64_t trackIdx)
+int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
 {
     CommonBoxPtr               pMvexBox;
     CommonBoxPtr               pMoovBox;
@@ -1066,7 +1068,7 @@ int MP4ParserImpl::generateFragmentInfoTable(uint64_t trackIdx)
     return 0;
 }
 
-int Mp4MediaInfo::getInfoFromTrack(BoxPtr trakBox, TrackInfoPtr track)
+int Mp4MediaInfo::getInfoFromTrack(Mp4BoxPtr trakBox, TrackInfoPtr track)
 {
     auto pTrakBox = dynamic_pointer_cast<const CommonBox>(trakBox);
     if (pTrakBox == nullptr)
@@ -1153,7 +1155,7 @@ string Mp4MediaInfo::getInfoString()
     return infoStr.str();
 }
 
-int Mp4VideoInfo::getInfoFromTrack(BoxPtr trakBox, TrackInfoPtr track)
+int Mp4VideoInfo::getInfoFromTrack(Mp4BoxPtr trakBox, TrackInfoPtr track)
 {
     if (Mp4MediaInfo::getInfoFromTrack(trakBox, track) < 0)
         return -1;
@@ -1253,7 +1255,7 @@ string Mp4VideoInfo::getInfoString()
     return infoStr.str();
 }
 
-int Mp4AudioInfo::getInfoFromTrack(BoxPtr trakBox, TrackInfoPtr track)
+int Mp4AudioInfo::getInfoFromTrack(Mp4BoxPtr trakBox, TrackInfoPtr track)
 {
     if (Mp4MediaInfo::getInfoFromTrack(trakBox, track) < 0)
         return -1;

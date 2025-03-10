@@ -21,12 +21,12 @@ public:
     virtual float       getParseProgress() const = 0;
     virtual MP4_TYPE_E  getMp4Type() const       = 0;
 
-    virtual BoxPtr                      asBox() const              = 0; // for more convenient box recursion
+    virtual Mp4BoxPtr                      asBox() const              = 0; // for more convenient box recursion
     virtual std::string                 getBasicInfoString() const = 0;
     virtual std::shared_ptr<Mp4BoxData> getBasicData() const       = 0;
 
     virtual const std::vector<TrackInfoPtr> &getTracksInfo() const = 0;
-    virtual const std::vector<BoxPtr>        getBoxes() const      = 0;
+    virtual const std::vector<Mp4BoxPtr>        getBoxes() const      = 0;
 
     virtual bool isTrackHasProperty(unsigned int trackIdx, MP4_TRACK_PROPERTY_E prop) const = 0;
 

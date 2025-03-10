@@ -93,7 +93,7 @@ public:
     virtual std::string getFilePath() const override { return mFileReader.getFileFullPath(); }
     virtual float       getParseProgress() const override;
 
-    const std::vector<BoxPtr> getBoxes() const override;
+    const std::vector<Mp4BoxPtr> getBoxes() const override;
 
     virtual const std::vector<TrackInfoPtr> &getTracksInfo() const override { return tracksInfo; }
 
@@ -103,7 +103,7 @@ public:
     virtual int getVideoSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoFrame &frm) override;
     virtual int getSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4RawSample &outFrame) override;
 
-    BoxPtr                      asBox() const override { return shared_from_this(); }
+    Mp4BoxPtr                      asBox() const override { return shared_from_this(); }
     std::shared_ptr<Mp4BoxData> getBasicData() const override;
     virtual std::string         getBasicInfoString() const override;
 
@@ -125,8 +125,8 @@ private:
     uint32_t     fragmentGetSampleCompositionOffset(TrackRunBoxPtr pTrunBox, uint64_t sampleIdx);
 
     int generateInfoTable(uint32_t trackIdx);
-    int generateISOInfoTable(TrackInfoPtr track);
-    int generateFragmentInfoTable(uint64_t trackIdx);
+    int generateIsoSamplesInfoTable(uint64_t trackIdx);
+    int generateFragmentSamplesInfoTable(uint64_t trackIdx);
     int getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoFrame &frm);
 
     H26X_FRAME_TYPE_E getH264FrameType(BinaryData &data);

@@ -776,9 +776,9 @@ float MP4ParserImpl::getParseProgress() const
 
     return (float)mFileReader.getCursorPos() / mFileReader.getFileSize();
 }
-const std::vector<BoxPtr> MP4ParserImpl::getBoxes() const
+const std::vector<Mp4BoxPtr> MP4ParserImpl::getBoxes() const
 {
-    std::vector<BoxPtr> res;
+    std::vector<Mp4BoxPtr> res;
     for (auto &box : mContainBoxes)
     {
         res.push_back(box);
