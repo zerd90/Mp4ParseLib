@@ -172,6 +172,7 @@ struct BitsReader
     uint8_t *buf;
     uint32_t sizeBits = 0;
     uint32_t ptr      = 0;
+    bool     err      = false;
     BitsReader()      = delete;
     BitsReader(void *buf, uint32_t sizeBytes)
     {

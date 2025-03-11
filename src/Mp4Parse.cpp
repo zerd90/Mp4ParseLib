@@ -346,7 +346,7 @@ int MP4ParserImpl::getSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4RawSample
     if (trackIdx >= tracksInfo.size())
         return -1;
 
-    if (sampleIdx > tracksInfo[trackIdx]->mediaInfo->samplesInfo.size())
+    if (sampleIdx >= tracksInfo[trackIdx]->mediaInfo->samplesInfo.size())
         return -1;
 
     Mp4SampleItem *curSample = &tracksInfo[trackIdx]->mediaInfo->samplesInfo[sampleIdx];
@@ -459,7 +459,8 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
     uint8_t *frameData = outFrame.sampleData.get();
     uint64_t copyPos   = 0;
 
-    for (unsigned int i = 0; i < naluAttach.size(); ++i)
+    uint32_t numNaluAttach = (uint32_t)naluAttach.size();
+    for (unsigned int i = 0; i < numNaluAttach; ++i)
     {
         frameData[copyPos]     = 0;
         frameData[copyPos + 1] = 0;
@@ -467,11 +468,6 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
         frameData[copyPos + 3] = 1;
 
         copyPos += 4;
-        if (outFrame.dataSize - copyPos < naluAttach[i].length)
-        {
-            MP4_PARSE_ERR("out of range %llu %llu\n", outFrame.dataSize, copyPos + naluAttach[i].length);
-            return -1;
-        }
         memcpy(frameData + copyPos, naluAttach[i].ptr(), naluAttach[i].length);
         copyPos += naluAttach[i].length;
     }
@@ -482,8 +478,7 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
     {
         uint32_t naluSize = 0;
 
-        mFileReader.read(&naluSize + 4 - lengthSize, lengthSize);
-        naluSize = bswap_32(naluSize);
+        naluSize = mFileReader.readUnsigned(lengthSize, true);
 
         frameData[copyPos]     = 0;
         frameData[copyPos + 1] = 0;
@@ -588,6 +583,10 @@ int writeAdts(uint8_t *buf, uint8_t codec, uint64_t size, int sampleRate, int ch
         {
             sampleRateIdx = sampleRateTable[i][0];
         }
+    }
+    if (13 == sampleRateIdx)
+    {
+        sampleRateIdx = 4;
     }
 
     BitsWriter bitsWriter(buf, 7);

@@ -156,7 +156,7 @@ int AVCConfigurationBox::parse(BinaryFileReader &reader, uint64_t boxPosition, u
 
         numSpse             = reader.readU8();
         AVCConfig.spseCount = numSpse;
-        MP4_DBG("num_SPSExt=%d\n", numSps);
+        MP4_DBG("num_SPSExt=%d\n", numSpse);
 
         for (int i = 0; i < numSpse; ++i)
         {

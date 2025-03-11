@@ -15,6 +15,14 @@ using std::map;
 using std::shared_ptr;
 using std::string;
 
+#define BOX_SIZE_LENGTH 4
+#define BOX_TYPE_LENGTH 4
+#define BOX_HEADER_LENGTH (BOX_SIZE_LENGTH + BOX_TYPE_LENGTH)
+
+#define BOX_LARGE_SIZE_LENGTH 8
+// size in header is 1
+#define BOX_EXTENDED_HEADER_LENGTH (BOX_HEADER_LENGTH + BOX_LARGE_SIZE_LENGTH)
+
 #define ADD_MATRIX_DATA(item, mat, len)                                                             \
     do                                                                                              \
     {                                                                                               \
@@ -219,9 +227,9 @@ int get_type_size(BinaryFileReader &reader, uint32_t &type, uint64_t &boxPos, ui
 {
     uint32_t ret        = 0;
     char     boxType[4] = {0};
-    if (reader.getCursorPos() + 8 > reader.getFileSize())
+    if (reader.getCursorPos() + BOX_HEADER_LENGTH > reader.getFileSize())
     {
-        MP4_ERR("size err %llu + 8 > %llu\n", reader.getCursorPos(), reader.getFileSize());
+        MP4_ERR("size err %llu + BOX_HEADER_LENGTH > %llu\n", reader.getCursorPos(), reader.getFileSize());
         return -1;
     }
 
@@ -230,7 +238,7 @@ int get_type_size(BinaryFileReader &reader, uint32_t &type, uint64_t &boxPos, ui
 
     boxPos = reader.getCursorPos();
 
-    ret = reader.read(&box_sz, 4);
+    ret = reader.read(&box_sz, BOX_SIZE_LENGTH);
     if (ret < 4)
     {
         MP4_ERR("read box size err %u\n", ret);
@@ -238,25 +246,25 @@ int get_type_size(BinaryFileReader &reader, uint32_t &type, uint64_t &boxPos, ui
     }
     box_sz = bswap_32(box_sz);
 
-    reader.read(boxType, 4);
+    reader.read(boxType, BOX_TYPE_LENGTH);
     type = MP4_BOX_MAKE_TYPE(boxType);
 
     if (box_sz > 1)
     {
         boxSize  = box_sz;
-        bodySize = boxSize - 8;
+        bodySize = boxSize - BOX_HEADER_LENGTH;
         size_err = reader.getCursorPos() + bodySize > reader.getFileSize();
     }
     else if (box_sz == 0)
     {
-        boxSize  = reader.getFileSize() - reader.getCursorPos() + 8;
-        bodySize = boxSize - 8;
+        boxSize  = reader.getFileSize() - reader.getCursorPos() + BOX_HEADER_LENGTH;
+        bodySize = boxSize - BOX_HEADER_LENGTH;
     }
     else
     {
-        reader.read(&boxSize, 8);
+        reader.read(&boxSize, BOX_LARGE_SIZE_LENGTH);
         boxSize  = bswap_64(boxSize);
-        bodySize = boxSize - 16;
+        bodySize = boxSize - BOX_EXTENDED_HEADER_LENGTH;
         size_err = reader.getCursorPos() + bodySize > reader.getFileSize();
         MP4_INFO("box %s using large size %llu\n", boxType2Str(type).c_str(), boxSize);
     }
@@ -271,17 +279,16 @@ int get_type_size(BinaryFileReader &reader, uint32_t &type, uint64_t &boxPos, ui
 
 int read_fullbox_version_flags(BinaryFileReader &reader, uint8_t *version, uint32_t *flags)
 {
-    *version     = 0;
-    *flags       = 0;
-    uint64_t ret = 0;
+    uint8_t buffer[4] = {0};
 
-    ret = reader.read(version, 1);
-    if (0 == ret)
+    // Read the full button version (1 byte) and flags (3 bytes) into the buffer
+    uint64_t ret = reader.read(buffer, 4);
+    if (ret < 4)
         return -1;
-    ret = reader.read((uint8_t *)flags + 1, 3);
-    if (0 == ret)
-        return -1;
-    *flags = bswap_32(*flags);
+
+    *version = buffer[0];
+    *flags   = ((uint32_t)buffer[1] << 16) | ((uint32_t)buffer[2] << 8) | ((uint32_t)buffer[3]);
+
     return 0;
 }
 
@@ -1295,6 +1302,11 @@ CommonBoxPtr MP4ParserImpl::parseBox(BinaryFileReader &reader, CommonBoxPtr pare
         {
             AudioSampleEntryPtr audioSampleEntry = dynamic_pointer_cast<AudioSampleEntry>(curBox);
             ChannelLayOutBoxPtr chnl             = dynamic_pointer_cast<ChannelLayOutBox>(subBox);
+            if (nullptr == chnl)
+            {
+                MP4_PARSE_ERR("chnl cast fail\n");
+                continue;
+            }
             chnl->channelCount                   = audioSampleEntry->channelCount;
             uint64_t oldPos                      = reader.getCursorPos();
             reader.setCursor(chnl->mBodyPos);

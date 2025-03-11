@@ -228,8 +228,8 @@ struct ESDescriptor // tag+length+data, sub descriptor is in data
     uint32_t descLength = 0; // length of data, 4 bytes longest, the last byte has height bit of 0, the lower 7 bits
                              // combined as the length
 
-    uint64_t descPos  = 0; // tag位置
-    uint64_t descSize = 0; // 总长度
+    uint64_t descPos  = 0; // tag position
+    uint64_t descSize = 0; // total size
 
     std::shared_ptr<ESDescriptor> subDesc;
     std::weak_ptr<ESDescriptor>   upper_descr;

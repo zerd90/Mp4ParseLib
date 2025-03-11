@@ -2,7 +2,7 @@
 #include "Mp4SampleEntryTypes.h"
 #include "Mp4ParseInternal.h"
 
-
+#define MAX_ICC_PROFILE_LENGTH (1024 * 1024) // Maximum allowed ICC profile length in bytes (1 MB). Adjust if larger profiles are expected.
 int ColourInformationBox::parse(BinaryFileReader &reader, uint64_t boxPosition, uint64_t boxSize, uint64_t boxBodySize)
 {
     BOX_PARSE_BEGIN();
@@ -18,10 +18,19 @@ int ColourInformationBox::parse(BinaryFileReader &reader, uint64_t boxPosition, 
             break;
         case MP4_BOX_MAKE_TYPE("rICC"):
         case MP4_BOX_MAKE_TYPE("prof"):
-            iccProfile.create(last - reader.getCursorPos());
+        {
+            size_t iccProfileLength = last - reader.getCursorPos();
+            if (iccProfileLength == 0 || iccProfileLength > MAX_ICC_PROFILE_LENGTH)
+            {
+                MP4_WARN("Invalid ICC profile length: %zu\n", iccProfileLength);
+                reader.setCursor(last);
+                break;
+            }
+            iccProfile.create(iccProfileLength);
             // TODO: ICC profile
-            reader.read(iccProfile.ptr(), last - reader.getCursorPos());
+            reader.read(iccProfile.ptr(), iccProfileLength);
             break;
+        }
         default:
             MP4_WARN("unknown type %s\n", boxType2Str(colorType).c_str());
             reader.setCursor(last);
@@ -243,9 +252,9 @@ std::shared_ptr<Mp4BoxData> HEVCDecoderConfigurationRecord::getData(std::shared_
         for (size_t j = 0, jm = arrays[i].nalus.size(); j < jm; j++)
         {
             item->kvAddPair("Array " + std::to_string(i) + " NALU " + std::to_string(j) + " Length",
-                      arrays[i].nalus[j].length)
+                            arrays[i].nalus[j].length)
                 ->kvAddPair("Array " + std::to_string(i) + " NALU " + std::to_string(j) + " Data",
-                      data2hex(arrays[i].nalus[j].data));
+                            data2hex(arrays[i].nalus[j].data));
         }
     }
     return item;

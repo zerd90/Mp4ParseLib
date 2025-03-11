@@ -20,7 +20,7 @@ uint8_t getCodecFromEsds(ESDBoxPtr esds)
         return 0;
 
     shared_ptr<ESDescriptor> descriptor = esds->descriptor;
-    while (1)
+    while (true)
     {
         if (descriptor->descTag == MP4DecConfigDescrTag || descriptor->subDesc == nullptr)
             break;
@@ -195,6 +195,10 @@ int hevcParseSps(uint8_t *buffer, uint32_t size, uint32_t &picWidthInLumaSamples
     bits.readBit(1); // temporalIdNested
 
     hvccParsePtl(bits, spsMaxSubLayersMinus1);
+    if (bits.err)
+    {
+        MP4_ERR("hvccParsePtl error\n");
+    }
 
     bits.readGolomb(); // sps_seq_parameter_set_id
 
@@ -225,15 +229,21 @@ int hevcParseSps(uint8_t *buffer, uint32_t size, uint32_t &picWidthInLumaSamples
     i = bits.readBit(1) ? 0 : spsMaxSubLayersMinus1;
     for (; i <= spsMaxSubLayersMinus1; i++)
     {
-        bits.readGolomb();
-        bits.readGolomb();
-        bits.readGolomb();
+        bits.readGolomb(); // sps_max_dec_pic_buffering_minus1[i]
+        bits.readGolomb(); // sps_max_num_reorder_pics[i]
+        bits.readGolomb(); // sps_max_latency_increase_plus1[i]
     }
 
     log2MinLumaCodingBlockSizeMinus3  = bits.readGolomb();
     log2DiffMaxMinLumaCodingBlockSize = bits.readGolomb();
 
     /* nothing useful for hvcC past this point */
+
+    if (bits.err)
+    {
+        MP4_ERR("hevcParseSps error\n");
+        return -1;
+    }
     return 0;
 }
 
@@ -250,7 +260,11 @@ int hevcParsePps(uint8_t *buffer, uint32_t size, uint8_t &dependentSliceSegments
     dependentSliceSegmentsEnabledFlag = ppsBits.readBit();
     ppsBits.readBit(1);
     numExtraSliceHeaderBits = (uint8_t)ppsBits.readBit(3);
-
+    if (ppsBits.err)
+    {
+        MP4_ERR("hevcParsePps error\n");
+        return -1;
+    }
     return 0;
 }
 
@@ -261,11 +275,14 @@ H26X_FRAME_TYPE_E MP4ParserImpl::getH265FrameType(int naluType, BinaryData &data
 
     uint8_t firstSliceSegmentInPicFlag;
 
-    int MinCbLog2SizeY   = mSpsInfo.log2MinLumaCodingBlockSizeMinus3 + 3;
-    int CtbLog2SizeY     = MinCbLog2SizeY + mSpsInfo.log2DiffMaxMinLumaCodingBlockSize;
+    if (!mHevcSPSInfo.parsed || !mHevcPPSInfo.parsed)
+        return H26X_FRAME_Unknown;
+
+    int MinCbLog2SizeY   = mHevcSPSInfo.log2MinLumaCodingBlockSizeMinus3 + 3;
+    int CtbLog2SizeY     = MinCbLog2SizeY + mHevcSPSInfo.log2DiffMaxMinLumaCodingBlockSize;
     int CtbSizeY         = 1 << CtbLog2SizeY;
-    int PicWidthInCtbsY  = (int)ceil((float)mSpsInfo.picWidthInLumaSamples / CtbSizeY);
-    int PicHeightInCtbsY = (int)ceil(mSpsInfo.picHeightInLumaSamples / CtbSizeY);
+    int PicWidthInCtbsY  = (int)ceil((float)mHevcSPSInfo.picWidthInLumaSamples / CtbSizeY);
+    int PicHeightInCtbsY = (int)ceil(mHevcSPSInfo.picHeightInLumaSamples / CtbSizeY);
     int PicSizeInCtbsY   = PicWidthInCtbsY * PicHeightInCtbsY;
 
     firstSliceSegmentInPicFlag = (uint8_t)bits.readBit(1);
@@ -274,13 +291,13 @@ H26X_FRAME_TYPE_E MP4ParserImpl::getH265FrameType(int naluType, BinaryData &data
     bits.readGolomb();  // slice_pic_parameter_set_id
     if (!firstSliceSegmentInPicFlag)
     {
-        if (mPpsInfo.dependentSliceSegmentsEnabledFlag)
+        if (mHevcPPSInfo.dependentSliceSegmentsEnabledFlag)
             /* dependentSliceSegmentFlag =  */ bits.readBit();
         int sliceSegmentAddressLen = (int)ceil(log2((float)PicSizeInCtbsY));
         bits.readBit(sliceSegmentAddressLen);
     }
-    if (mPpsInfo.numExtraSliceHeaderBits > 0)
-        bits.readBit(mPpsInfo.numExtraSliceHeaderBits);
+    if (mHevcPPSInfo.numExtraSliceHeaderBits > 0)
+        bits.readBit(mHevcPPSInfo.numExtraSliceHeaderBits);
 
     frameType = bits.readGolomb();
 
@@ -337,7 +354,7 @@ H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t 
         uint64_t naluLast = mFileReader.getCursorPos() + naluSize;
         uint8_t  naluType;
         mFileReader.read(&naluType, 1);
-        BitsReader bitsReader(&naluType, 1);
+        BitsReader bitsReader(&naluType, sizeof(naluType));
         BinaryData data;
         // nalu type only tell if it is an I frame, parsing nalu data to tell if it's a P or B frame
         switch (codecType)
@@ -530,15 +547,30 @@ int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
     }
     if (pps.length > 0)
     {
-        hevcParsePps(pps.ptr(), (uint32_t)pps.length, mPpsInfo.dependentSliceSegmentsEnabledFlag,
-                     mPpsInfo.numExtraSliceHeaderBits);
-        mPpsInfo.parsed = true;
+        if (hevcParsePps(pps.ptr(), (uint32_t)pps.length, mHevcPPSInfo.dependentSliceSegmentsEnabledFlag,
+                         mHevcPPSInfo.numExtraSliceHeaderBits)
+            < 0)
+        {
+            MP4_PARSE_ERR("hevcParsePps failed\n");
+        }
+        else
+        {
+            mHevcPPSInfo.parsed = true;
+        }
     }
     if (sps.length > 0)
     {
-        hevcParseSps(sps.ptr(), (uint32_t)sps.length, mSpsInfo.picWidthInLumaSamples, mSpsInfo.picHeightInLumaSamples,
-                     mSpsInfo.log2MinLumaCodingBlockSizeMinus3, mSpsInfo.log2DiffMaxMinLumaCodingBlockSize);
-        mSpsInfo.parsed = true;
+        if (hevcParseSps(sps.ptr(), (uint32_t)sps.length, mHevcSPSInfo.picWidthInLumaSamples,
+                         mHevcSPSInfo.picHeightInLumaSamples, mHevcSPSInfo.log2MinLumaCodingBlockSizeMinus3,
+                         mHevcSPSInfo.log2DiffMaxMinLumaCodingBlockSize)
+            < 0)
+        {
+            MP4_PARSE_ERR("hevcParseSps failed\n");
+        }
+        else
+        {
+            mHevcSPSInfo.parsed = true;
+        }
     }
 
     if (MP4_CODEC_H264 == codecType)
@@ -980,17 +1012,14 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
         uint64_t fragOffset          = 0;
         uint64_t fragTotalSampleSize = 0;
 
-        printf("==== tfhd fullbox flags=0x%x\n", pTfhdBox->mFullboxFlags);
         // calculate fragment data offset in file
         if (pTfhdBox->mFullboxFlags & MP4_TFHD_FLAG_BASE_DATA_OFFSET_PRESENT)
             fragOffset += pTfhdBox->baseDataOffset;
         else if (pTfhdBox->mFullboxFlags & MP4_TFHD_FLAG_DEFAULT_BASE_IS_MOOF)
             fragOffset += pMoofBoxes[moofIdx]->mBodyPos;
-        printf("==== fragOffset=%llu\n", fragOffset);
-        printf("==== trun fullbox flags=0x%x\n", pTrunBox->mFullboxFlags);
+
         if (pTrunBox->mFullboxFlags & MP4_TRUN_FLAG_DATA_OFFSET_PRESENT)
             fragOffset += pTrunBox->dataOffset;
-        printf("==== fragOffset=%llu %u\n", fragOffset, pTrunBox->dataOffset);
 
         for (uint64_t sampleIdx = 0, sampleCount = pTrunBox->entryCount; sampleIdx < sampleCount; ++sampleIdx)
         {
@@ -1012,9 +1041,6 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
 
             curSample.ptsMs =
                 curSample.dtsMs + fragmentGetSampleCompositionOffset(pTrunBox, sampleIdx) * 1000 / pMdhdBox->timescale;
-            printf("fragOffset=%llu, fragTotalSampleSize=%llu, sampleIdx=%llu, sampleSize=%llu, dts=%llu, pts=%llu\n",
-                   fragOffset, fragTotalSampleSize, curSample.sampleIdx, curSample.sampleSize, curSample.dtsMs,
-                   curSample.ptsMs);
             sampleList.push_back(curSample);
 
             totalSampleCount++;
@@ -1145,8 +1171,7 @@ string Mp4MediaInfo::getInfoString()
 
 int Mp4VideoInfo::getInfoFromTrack(Mp4BoxPtr trakBox, TrackInfoPtr track)
 {
-    if (Mp4MediaInfo::getInfoFromTrack(trakBox, track) < 0)
-        return -1;
+    CHECK_RET(Mp4MediaInfo::getInfoFromTrack(trakBox, track));
 
     auto pTrakBox = dynamic_pointer_cast<const CommonBox>(trakBox);
     if (pTrakBox == nullptr)
@@ -1245,8 +1270,7 @@ string Mp4VideoInfo::getInfoString()
 
 int Mp4AudioInfo::getInfoFromTrack(Mp4BoxPtr trakBox, TrackInfoPtr track)
 {
-    if (Mp4MediaInfo::getInfoFromTrack(trakBox, track) < 0)
-        return -1;
+    CHECK_RET(Mp4MediaInfo::getInfoFromTrack(trakBox, track));
 
     auto pTrakBox = dynamic_pointer_cast<const CommonBox>(trakBox);
     if (pTrakBox == nullptr)

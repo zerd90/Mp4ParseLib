@@ -1,6 +1,6 @@
 # Mp4ParseLib
 
-This is a Simple MP4 parse library. this is just for me learning mp4 structure, so I write it in a convenience way, not for the best performance.
+This is a simple mp4 parse library. This is just for me learning mp4 structure, so I write it in a convenience way, not for the best performance.
 
 Using this library, you can:
 
@@ -9,4 +9,4 @@ Using this library, you can:
 3. get information of every sample or chunk
 4. get data of any sample
 
-You can get the usage from samples/
+You can get the usage from sample code under samples

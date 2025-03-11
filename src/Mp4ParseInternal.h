@@ -149,7 +149,7 @@ private:
         bool    parsed                            = false;
         uint8_t dependentSliceSegmentsEnabledFlag = 0; // get from PPS
         uint8_t numExtraSliceHeaderBits           = 0;
-    } mPpsInfo;
+    } mHevcPPSInfo;
 
     struct sps_info
     {
@@ -158,7 +158,7 @@ private:
         uint32_t log2DiffMaxMinLumaCodingBlockSize = 0;
         uint32_t picWidthInLumaSamples             = 0;
         uint32_t picHeightInLumaSamples            = 0;
-    } mSpsInfo;
+    } mHevcSPSInfo;
 
     std::map<int /* track index, start from 0 */, int> mNaluLengthSize;
 };

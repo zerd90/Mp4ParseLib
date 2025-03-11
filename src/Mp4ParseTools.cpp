@@ -94,13 +94,13 @@ int BinaryFileReader::checkBuffer(uint64_t readPos, uint64_t readSize)
         if (fseek64(mFileHandle, readPos, SEEK_SET) < 0)
         {
             MP4_ERR("seek to %#llx fail %s\n", readPos, strerror(errno));
-            exit(0);
+            return -1;
         }
         if (fread(mReadBuffer.get(), 1, mBufferContainSize, mFileHandle) != mBufferContainSize)
         {
             MP4_ERR("read %s fail(%s), pos %llu, size %llu\n", mFileFullPath.c_str(), strerror(errno), readPos,
                     mBufferContainSize);
-            exit(0);
+            return -1;
         }
         mBufferStartOffset = readPos;
         MP4_DBG("update buffer, pos=%#llx, size=%llu\n", mBufferStartOffset, mBufferContainSize);
@@ -374,11 +374,11 @@ uint64_t BinaryFileReader::readUnsigned(uint16_t bytes, bool reverse)
             return readU64(reverse);
         default:
             uint64_t res = 0;
-            while (bytes > 0)
+            for(uint16_t i = 0; i < bytes; i++)
             {
                 res = (res << 8) | readU8();
-                bytes--;
             }
+
             if (reverse)
             {
                 res = bswap_64(res);
@@ -402,11 +402,11 @@ int64_t BinaryFileReader::readSigned(uint16_t bytes, bool reverse)
             return readS64(reverse);
         default:
             int64_t res = 0;
-            while (bytes > 0)
+            for(uint16_t i = 0; i < bytes; i++)
             {
                 res = (res << 8) | readS8();
-                bytes--;
             }
+
             if (reverse)
             {
                 res = bswap_64(res);
@@ -447,7 +447,10 @@ uint64_t BinaryFileReader::setFileCursor(uint64_t absolutePos)
 uint8_t BitsReader::readBit()
 {
     if (ptr >= sizeBits)
+    {
+        err = true;
         return 0;
+    }
 
     uint32_t bytePtr = ptr / 8;
     uint8_t  byte    = *(buf + bytePtr);
