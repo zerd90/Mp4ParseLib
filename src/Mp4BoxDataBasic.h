@@ -33,7 +33,7 @@ private:
     bool bhex = false;
 
 public:
-    Mp4BoxDataBasic(MP4_BOX_DATA_TYPE_E type) : Mp4BoxDataBase(type) {}
+    explicit Mp4BoxDataBasic(MP4_BOX_DATA_TYPE_E type) : Mp4BoxDataBase(type) {}
     template <typename T>
     explicit Mp4BoxDataBasic(T val, bool bhex = false);
 

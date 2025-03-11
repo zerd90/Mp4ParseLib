@@ -31,9 +31,9 @@ void printBoxData(std::shared_ptr<Mp4BoxData> data, int layer, FILE *fp)
             if (MP4_BOX_DATA_TYPE_KEY_VALUE_PAIRS == value->getDataType())
             {
                 fprintf(fp, "%s:\n", key.c_str());
-                for (int i = 0; i < value->size(); i++)
+                for (int keyIdx = 0; keyIdx < value->size(); keyIdx++)
                 {
-                    auto subKey  = value->kvGetKey(i);
+                    auto subKey  = value->kvGetKey(keyIdx);
                     auto subData = value->kvGetValue(subKey);
                     output_tab(fp, layer + 2);
                     fprintf(fp, "%s: %s\n", subKey.c_str(), subData->toString().c_str());

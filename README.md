@@ -1,6 +1,6 @@
 # Mp4ParseLib
 
-This is a Simple MP4 parse library. I wrote it in a convenience way, so it's not for the best performance.
+This is a Simple MP4 parse library. this is just for me learning mp4 structure, so I write it in a convenience way, not for the best performance.
 
 Using this library, you can:
 

@@ -21,12 +21,11 @@ public:
     virtual float       getParseProgress() const = 0;
     virtual MP4_TYPE_E  getMp4Type() const       = 0;
 
-    virtual Mp4BoxPtr                      asBox() const              = 0; // for more convenient box recursion
-    virtual std::string                 getBasicInfoString() const = 0;
-    virtual std::shared_ptr<Mp4BoxData> getBasicData() const       = 0;
+    virtual Mp4BoxPtr   asBox() const              = 0; // for more convenient box recursion
+    virtual std::string getBasicInfoString() const = 0;
 
     virtual const std::vector<TrackInfoPtr> &getTracksInfo() const = 0;
-    virtual const std::vector<Mp4BoxPtr>        getBoxes() const      = 0;
+    virtual const std::vector<Mp4BoxPtr>     getBoxes() const      = 0;
 
     virtual bool isTrackHasProperty(unsigned int trackIdx, MP4_TRACK_PROPERTY_E prop) const = 0;
 
@@ -43,7 +42,7 @@ Mp4ParserHandle                    createMp4Parser();
 // you can store the data in *pData in any form you prefer;
 // return 0 if success, otherwise return a negative value;
 using BoxParseFunc = std::function<int(uint8_t *data, uint64_t dataSize, void **pData)>;
-//pData is the same as the one in BoxParseFunc;
+// pData is the same as the one in BoxParseFunc;
 using BoxDataFunc  = std::function<std::shared_ptr<Mp4BoxData>(void *pData)>;
 void registerUdtaCallback(uint8_t uuid[MP4_UUID_LEN], BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback);
 void registerBoxCallback(Mp4BoxType boxType, BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback);

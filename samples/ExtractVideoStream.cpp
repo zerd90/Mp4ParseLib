@@ -109,7 +109,7 @@ int main(int argc, char **argv)
             break;
         }
         wrSize += frame.dataSize;
-        fprintf(stderr, "\rWriting %lld...", wrSize);
+        fprintf(stderr, "\rWriting %llu...", wrSize);
     }
 
     if (audioTrackIdx >= 0 && audioFile.is_open())

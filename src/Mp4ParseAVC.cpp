@@ -49,7 +49,7 @@ int AVCConfigurationBox::parse(BinaryFileReader &reader, uint64_t boxPosition, u
     uint8_t compact1;
     uint8_t reserve;
     uint8_t AVCProfileIndication;
-    uint8_t numSps, numPps, numSpse;
+    uint8_t numSps, numPps;
 
     BOX_PARSE_BEGIN();
 
@@ -120,6 +120,7 @@ int AVCConfigurationBox::parse(BinaryFileReader &reader, uint64_t boxPosition, u
          || AVCProfileIndication == 144)
         && reader.getCursorPos() < last)
     {
+        uint8_t numSpse;
         compact1 = reader.readU8();
 
         bitsReader = BitsReader(&compact1, 1);

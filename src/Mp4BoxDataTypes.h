@@ -18,14 +18,14 @@ struct KeyValue
     std::string                 key;
     std::shared_ptr<Mp4BoxData> value;
 
-    KeyValue(std::string key, std::shared_ptr<Mp4BoxData> value) : key(key), value(value) {}
+    KeyValue(const std::string &key, std::shared_ptr<Mp4BoxData> value) : key(key), value(value) {}
 };
 
 class Mp4BoxDataBase : public Mp4BoxData
 {
 public:
     Mp4BoxDataBase() = delete;
-    Mp4BoxDataBase(MP4_BOX_DATA_TYPE_E type) : mObjectType(type) {}
+    explicit Mp4BoxDataBase(MP4_BOX_DATA_TYPE_E type) : mObjectType(type) {}
     virtual ~Mp4BoxDataBase() {}
 
     virtual MP4_BOX_DATA_TYPE_E getDataType() const override { return mObjectType; }
@@ -161,30 +161,6 @@ public:
     {
         assert(MP4_BOX_DATA_TYPE_TABLE == mObjectType);
         return nullptr;
-    }
-
-    Mp4BoxDataBasic *asBasic()
-    {
-        assert(mObjectType <= MP4_BOX_DATA_TYPE_BASIC);
-        return (Mp4BoxDataBasic *)this;
-    }
-
-    Mp4BoxDataKeyValues *asKeyValuePairs()
-    {
-        assert(MP4_BOX_DATA_TYPE_KEY_VALUE_PAIRS == mObjectType);
-        return (Mp4BoxDataKeyValues *)this;
-    }
-
-    Mp4BoxDataArray *asArray()
-    {
-        assert(MP4_BOX_DATA_TYPE_ARRAY == mObjectType);
-        return (Mp4BoxDataArray *)this;
-    }
-
-    Mp4BoxDataTable *asTable()
-    {
-        assert(MP4_BOX_DATA_TYPE_TABLE == mObjectType);
-        return (Mp4BoxDataTable *)this;
     }
 
     friend std::ostream &operator<<(std::ostream &os, const Mp4BoxDataBase &obj);

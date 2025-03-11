@@ -237,7 +237,7 @@ int MP4ParserImpl::parse(string filepath)
 
         if (mvhd != nullptr && trakBoxes.size() != mvhd->trackCount)
         {
-            MP4_WARN("track count may not right %zu %d\n", trakBoxes.size(), mvhd->trackCount);
+            MP4_WARN("track count may not right %zu %u\n", trakBoxes.size(), mvhd->trackCount);
         }
         uint32_t trakIdx = 0;
 
@@ -318,7 +318,7 @@ bool MP4ParserImpl::isTrackHasProperty(uint32_t trackIdx, MP4_TRACK_PROPERTY_E p
     vector<CommonBoxPtr> trakBoxes = moov->getContainBoxes("trak");
     if (trackIdx >= trakBoxes.size())
     {
-        MP4_ERR("wrong idx %d\n", trackIdx);
+        MP4_ERR("wrong idx %u\n", trackIdx);
         return false;
     }
     CommonBoxPtr tkhd = trakBoxes[trackIdx]->getContainBox("tkhd");
@@ -328,13 +328,14 @@ bool MP4ParserImpl::isTrackHasProperty(uint32_t trackIdx, MP4_TRACK_PROPERTY_E p
         return false;
 }
 
-void copySampleInfo(Mp4SampleItem &src, Mp4RawSample &dst)
+void copySampleInfo(const Mp4SampleItem &src, Mp4RawSample &dst)
 {
     dst.sampleIdx  = src.sampleIdx;
     dst.fileOffset = src.sampleOffset;
     dst.sampleSize = dst.dataSize = src.sampleSize;
-    dst.dtsMs                     = src.dtsMs;
-    dst.ptsMs                     = src.ptsMs;
+
+    dst.dtsMs = src.dtsMs;
+    dst.ptsMs = src.ptsMs;
 }
 
 int MP4ParserImpl::getSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4RawSample &outSample)
@@ -347,11 +348,6 @@ int MP4ParserImpl::getSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4RawSample
 
     if (sampleIdx > tracksInfo[trackIdx]->mediaInfo->samplesInfo.size())
         return -1;
-
-    CommonBoxPtr         moov       = getContainBox("moov");
-    vector<CommonBoxPtr> trakBoxes  = moov->getContainBoxes("trak");
-    CommonBoxPtr         curTrakBox = trakBoxes[trackIdx];
-    TrackHeaderBoxPtr    tkhd       = curTrakBox->getContainBox<TrackHeaderBox>("tkhd");
 
     Mp4SampleItem *curSample = &tracksInfo[trackIdx]->mediaInfo->samplesInfo[sampleIdx];
     outSample.trackIdx       = trackIdx;
@@ -471,6 +467,11 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
         frameData[copyPos + 3] = 1;
 
         copyPos += 4;
+        if (outFrame.dataSize - copyPos < naluAttach[i].length)
+        {
+            MP4_PARSE_ERR("out of range %llu %llu\n", outFrame.dataSize, copyPos + naluAttach[i].length);
+            return -1;
+        }
         memcpy(frameData + copyPos, naluAttach[i].ptr(), naluAttach[i].length);
         copyPos += naluAttach[i].length;
     }
@@ -756,8 +757,11 @@ std::shared_ptr<Mp4BoxData> MP4ParserImpl::getData(std::shared_ptr<Mp4BoxData> s
     auto mvhd      = getContainBoxRecursive<MovieHeaderBox>("mvhd");
     if (mvhd != nullptr)
     {
-        movieItem->kvAddPair("Duration(ms)", mvhd->duration * 1000 / mvhd->timescale)
-            ->kvAddPair("Track Number", mvhd->trackCount);
+        uint64_t durationMs = 0;
+        if (mvhd->timescale != 0)
+            durationMs = mvhd->duration * 1000 / mvhd->timescale;
+
+        movieItem->kvAddPair("Duration(ms)", durationMs)->kvAddPair("Track Number", mvhd->trackCount);
     }
 
     for (auto &Mp4TrackInfo : tracksInfo)
@@ -771,7 +775,7 @@ std::shared_ptr<Mp4BoxData> MP4ParserImpl::getData(std::shared_ptr<Mp4BoxData> s
 }
 float MP4ParserImpl::getParseProgress() const
 {
-    if (!mFileReader.isOpened())
+    if (!mFileReader.isOpened() || 0 == mFileReader.getFileSize())
         return 1.f;
 
     return (float)mFileReader.getCursorPos() / mFileReader.getFileSize();
@@ -779,13 +783,6 @@ float MP4ParserImpl::getParseProgress() const
 const std::vector<Mp4BoxPtr> MP4ParserImpl::getBoxes() const
 {
     std::vector<Mp4BoxPtr> res;
-    for (auto &box : mContainBoxes)
-    {
-        res.push_back(box);
-    }
+    std::copy(mContainBoxes.begin(), mContainBoxes.end(), std::back_inserter(res));
     return res;
-}
-std::shared_ptr<Mp4BoxData> MP4ParserImpl::getBasicData() const
-{
-    return getData();
 }

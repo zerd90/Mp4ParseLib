@@ -104,7 +104,6 @@ public:
     virtual int getSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4RawSample &outFrame) override;
 
     Mp4BoxPtr                      asBox() const override { return shared_from_this(); }
-    std::shared_ptr<Mp4BoxData> getBasicData() const override;
     virtual std::string         getBasicInfoString() const override;
 
     virtual H26X_FRAME_TYPE_E   parseVideoNaluType(uint32_t trackId, uint64_t sampleIdx) override;

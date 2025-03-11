@@ -211,7 +211,7 @@ struct AVCSampleEntry : public VisualSampleEntry //"avc1","avc2","avc3","avc4"
 };
 using AVCSampleEntryPtr = std::shared_ptr<AVCSampleEntry>;
 
-enum ES_DESCRIPTOR_TAG_E : uint8_t
+enum ES_DESCRIPTOR_TAG_E
 {
     UnKnownTag             = 0x00,
     MP4ODescrTag           = 0x01,

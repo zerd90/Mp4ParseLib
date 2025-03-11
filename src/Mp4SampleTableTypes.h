@@ -16,7 +16,7 @@ struct SampleTableBox : public FullBox
     uint32_t                                      entryCount = 0; // u32
     std::vector<std::shared_ptr<BasicSampleItem>> entries;
 
-    SampleTableBox(const char *boxTypeStr) : FullBox(boxTypeStr), entryCount(0) {}
+    explicit SampleTableBox(const char *boxTypeStr) : FullBox(boxTypeStr), entryCount(0) {}
     template <typename _T>
     std::shared_ptr<_T> getEntry(uint64_t idx)
     {
@@ -31,8 +31,8 @@ struct sttsItem : public BasicSampleItem
 {
     uint32_t sampleCount = 0; // u32
     uint32_t delta       = 0; // u32
-    void     addItemTo(std::shared_ptr<Mp4BoxData> src) { src->tableAddRow(sampleCount, delta); }
-    void     setColumnsName(std::shared_ptr<Mp4BoxData> src) { src->setColumnsName("Sample Count", "Delta"); }
+    void     addItemTo(std::shared_ptr<Mp4BoxData> src) override { src->tableAddRow(sampleCount, delta); }
+    void     setColumnsName(std::shared_ptr<Mp4BoxData> src) override { src->setColumnsName("Sample Count", "Delta"); }
 };
 struct TimeToSampleBox : public SampleTableBox
 {
@@ -48,8 +48,11 @@ struct cttsItem : public BasicSampleItem
     uint32_t sampleCount  = 0; // u32
     uint64_t sampleOffset = 0; // u32/s32
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src) { src->tableAddRow(sampleCount, sampleOffset); }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src) { src->setColumnsName("Sample Count", "Sample Offset"); }
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override { src->tableAddRow(sampleCount, sampleOffset); }
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override
+    {
+        src->setColumnsName("Sample Count", "Sample Offset");
+    }
 };
 struct CompositionOffsetBox : public SampleTableBox
 {
@@ -67,8 +70,11 @@ struct stscItem : public BasicSampleItem
     uint32_t sampleCount   = 0; // u32
     uint32_t sampleDescIdx = 0; // u32
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src) { src->tableAddRow(firstChunk, sampleCount, sampleDescIdx); }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src)
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override
+    {
+        src->tableAddRow(firstChunk, sampleCount, sampleDescIdx);
+    }
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override
     {
         src->setColumnsName("First Chunk", "Sample Count", "Sample Description index");
     }
@@ -87,8 +93,8 @@ struct stszItem : public BasicSampleItem
 {
     uint32_t sampleSize = 0; // u32
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src) { src->tableAddRow(sampleSize); }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src) { src->setColumnsName("Sample Size"); }
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override { src->tableAddRow(sampleSize); }
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override { src->setColumnsName("Sample Size"); }
 };
 struct SampleSizeBox : public SampleTableBox
 {
@@ -105,8 +111,8 @@ struct stz2Item : public BasicSampleItem
 {
     uint16_t sampleSize = 0; // field_size bits
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src) { src->tableAddRow(sampleSize); }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src) { src->setColumnsName("Sample Size"); }
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override { src->tableAddRow(sampleSize); }
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override { src->setColumnsName("Sample Size"); }
 };
 struct CompactSampleSizeBox : public SampleTableBox
 {
@@ -124,8 +130,8 @@ struct stcoItem : public BasicSampleItem
 {
     uint32_t chunkOffset = 0; // u32
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src) { src->tableAddRow(chunkOffset); }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src) { src->setColumnsName("Chunk Offset"); }
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override { src->tableAddRow(chunkOffset); }
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override { src->setColumnsName("Chunk Offset"); }
 };
 struct ChunkOffsetBox : public SampleTableBox
 {
@@ -141,8 +147,8 @@ struct co64Item : public BasicSampleItem
 {
     uint64_t chunkOffset = 0; // u64
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src) { src->tableAddRow(chunkOffset); }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src) { src->setColumnsName("Chunk Offset"); }
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override { src->tableAddRow(chunkOffset); }
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override { src->setColumnsName("Chunk Offset"); }
 };
 struct ChunkLargeOffsetBox : public SampleTableBox
 {
@@ -158,8 +164,8 @@ struct stssItem : public BasicSampleItem
 {
     uint64_t sampleNumber = 0; // u32, start from 1
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src) { src->tableAddRow(sampleNumber); }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src) { src->setColumnsName("Sample Number"); }
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override { src->tableAddRow(sampleNumber); }
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override { src->setColumnsName("Sample Number"); }
 };
 struct SyncSampleBox : public SampleTableBox
 {
@@ -178,11 +184,11 @@ struct sdtpItem : public BasicSampleItem
     uint8_t sampleDependedOn    = 0; // 2 bits
     uint8_t sampleHasRedundancy = 0; // 2 bits
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src)
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override
     {
         src->tableAddRow(isLeading, sampleDependsOn, sampleDependedOn, sampleHasRedundancy);
     }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src)
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override
     {
         src->setColumnsName("Is Leading", "Sample Depends On", "Sample Depended On", "Sample has Redundancy");
     }
@@ -204,14 +210,14 @@ struct sgpdEntry : public BasicSampleItem
 
     BinaryData description; // descriptionLength
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src)
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override
     {
         if (descriptionLength > 0)
             src->tableAddRow(descriptionLength, data2hex(description));
         else
             src->tableAddRow(data2hex(description));
     }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src)
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override
     {
         if (descriptionLength > 0)
             src->setColumnsName("Description Length", "Description");
@@ -241,8 +247,8 @@ struct sbgpItem : public BasicSampleItem
     uint32_t sampleCount           = 0; // u32
     uint32_t groupDescriptionIndex = 0; // u32
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src) { src->tableAddRow(sampleCount, groupDescriptionIndex); }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src)
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override { src->tableAddRow(sampleCount, groupDescriptionIndex); }
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override
     {
         src->setColumnsName("Sample Count", "Group Description Index");
     }
@@ -268,11 +274,11 @@ struct elstItem : public BasicSampleItem
     int16_t  mediaRateInteger  = 0; // s16
     int16_t  mediaRateFraction = 0; // s16
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src)
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override
     {
         src->tableAddRow(segmentDuration, mediaTime, mediaRateInteger, mediaRateFraction);
     }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src)
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override
     {
         src->setColumnsName("Segment Duration", "Media Time", "Media Rate Integer", "Media Rate Fraction");
     }
@@ -294,8 +300,8 @@ struct trunItem : public BasicSampleItem
     uint32_t flags        = 0;
     uint32_t composOffset = 0;
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src) { src->tableAddRow(duration, size, flags, composOffset); }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src)
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override { src->tableAddRow(duration, size, flags, composOffset); }
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override
     {
         src->setColumnsName("Duration", "Size", "Flags", "Sample Composition Time Offset");
     }
@@ -321,8 +327,11 @@ struct tfraItem : public BasicSampleItem
     uint64_t trunNum      = 0; // lenSzTrunNum
     uint64_t sampleNumber = 0; // lenSzSampleNum
 
-    void addItemTo(std::shared_ptr<Mp4BoxData> src) { src->tableAddRow(time, moofOffset, trafNum, trunNum, sampleNumber); }
-    void setColumnsName(std::shared_ptr<Mp4BoxData> src)
+    void addItemTo(std::shared_ptr<Mp4BoxData> src) override
+    {
+        src->tableAddRow(time, moofOffset, trafNum, trunNum, sampleNumber);
+    }
+    void setColumnsName(std::shared_ptr<Mp4BoxData> src) override
     {
         src->setColumnsName("Time", "Moof Offset", "Traf Number", "Trun Number", "Sample Number");
     }

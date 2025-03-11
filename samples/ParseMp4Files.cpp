@@ -28,8 +28,6 @@ int createDir(const char *path)
 
 void generateResultTable(Mp4ParserHandle mp4_info, string dirPath)
 {
-    int ret = 0;
-
     if (createDir(dirPath.c_str()) < 0)
     {
         printf("dir %s create fail\n", dirPath.c_str());
@@ -63,10 +61,10 @@ void generateResultTable(Mp4ParserHandle mp4_info, string dirPath)
                           << curTrackMedia->samplesInfo[j].dtsDeltaMs << ", ";
             auto codecType = mp4GetCodecType(curTrackMedia->codecCode);
             trackInfoFile << mp4GetFrameTypeStr(curTrackMedia->samplesInfo[j].frameType) << ", ";
-            for (int i = 0; i < curTrackMedia->samplesInfo[j].naluTypes.size(); i++)
+            for (int naluIdx = 0; naluIdx < curTrackMedia->samplesInfo[j].naluTypes.size(); naluIdx++)
             {
-                trackInfoFile << mp4GetNaluTypeStr(codecType, curTrackMedia->samplesInfo[j].naluTypes[i]);
-                if (i < curTrackMedia->samplesInfo[j].naluTypes.size() - 1)
+                trackInfoFile << mp4GetNaluTypeStr(codecType, curTrackMedia->samplesInfo[j].naluTypes[naluIdx]);
+                if (naluIdx < curTrackMedia->samplesInfo[j].naluTypes.size() - 1)
                 {
                     trackInfoFile << "|";
                 }

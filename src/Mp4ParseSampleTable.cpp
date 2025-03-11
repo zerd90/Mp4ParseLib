@@ -43,9 +43,9 @@ std::shared_ptr<Mp4BoxData> SampleTableBox::getData(std::shared_ptr<Mp4BoxData> 
     {
         entries[0]->setColumnsName(entryTable);
     }
-    for (auto &item : entries)
+    for (auto &entry : entries)
     {
-        item->addItemTo(entryTable);
+        entry->addItemTo(entryTable);
     }
     return item;
 }
@@ -388,12 +388,10 @@ int TrackRunBox::parse(BinaryFileReader &reader, uint64_t boxPosition, uint64_t 
     BOX_PARSE_BEGIN();
 
     entryCount = reader.readU32(true);
-    printf("====trun entryCount: %d\n", entryCount);
 
     if (mFullboxFlags & MP4_TRUN_FLAG_DATA_OFFSET_PRESENT)
     {
         dataOffset = reader.readS32(true);
-        printf("====trun dataOffset: 0x%x\n", dataOffset);
     }
 
     if (mFullboxFlags & MP4_TRUN_FLAG_FIRST_SAMPLE_FLAGS_PRESENT)

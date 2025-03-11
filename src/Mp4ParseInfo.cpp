@@ -48,7 +48,7 @@ uint8_t getCodecFromStsd(SampleDescriptionBoxPtr stsd)
     auto    containBoxes = stsd->getContainBoxes();
     if (stsd->entryCount == 0 || containBoxes.empty())
     {
-        MP4_ERR("no codec info %d\n", stsd->entryCount);
+        MP4_ERR("no codec info %u\n", stsd->entryCount);
         res = 0;
     }
     else
@@ -97,24 +97,14 @@ MP4_CODEC_TYPE_E getCodecTypeFromStsd(SampleDescriptionBoxPtr stsd)
     return mp4GetCodecType(codec);
 }
 
-int bsReadUe(BitsReader &reader)
-{
-    int i = 0;
-
-    while (reader.readBit() == 0 && i < 32) // 条件为：读到的当前比特=0，最多只能读32比特
-    {
-        i++;
-    }
-    return ((1 << i) - 1 + reader.readBit(i));
-}
 H26X_FRAME_TYPE_E MP4ParserImpl::getH264FrameType(BinaryData &data)
 {
-    int        frameType;
+    uint32_t   frameType;
     BitsReader bits(data.ptr(), (uint32_t)data.length);
     /* i_first_mb */
-    bsReadUe(bits);
+    bits.readGolomb();
     /* picture type */
-    frameType = bsReadUe(bits);
+    frameType = bits.readGolomb();
     switch (frameType)
     {
         case 0:
@@ -192,7 +182,7 @@ void hvccParsePtl(BitsReader &bits, unsigned int maxSubLayersMinus1)
 int hevcParseSps(uint8_t *buffer, uint32_t size, uint32_t &picWidthInLumaSamples, uint32_t &picHeightInLumaSamples,
                  uint32_t &log2MinLumaCodingBlockSizeMinus3, uint32_t &log2DiffMaxMinLumaCodingBlockSize)
 {
-    unsigned int i, spsMaxSubLayersMinus1, log2MaxPicOrderCntLsbMinus4;
+    uint32_t i, spsMaxSubLayersMinus1;
 
     BitsReader bits(buffer, size);
     // header
@@ -229,7 +219,7 @@ int hevcParseSps(uint8_t *buffer, uint32_t size, uint32_t &picWidthInLumaSamples
     MP4_UNUSED(bitDepthLumaMinus8);
     MP4_UNUSED(bitDepthChromaMinus8);
 
-    log2MaxPicOrderCntLsbMinus4 = bits.readGolomb();
+    /*uint32_t log2MaxPicOrderCntLsbMinus4 =  */ bits.readGolomb();
 
     /* sps_sub_layer_ordering_info_present_flag */
     i = bits.readBit(1) ? 0 : spsMaxSubLayersMinus1;
@@ -282,11 +272,10 @@ H26X_FRAME_TYPE_E MP4ParserImpl::getH265FrameType(int naluType, BinaryData &data
     if (naluType >= 16 && naluType <= 23)
         bits.readBit(); // no_output_of_prior_pics_flag
     bits.readGolomb();  // slice_pic_parameter_set_id
-    uint8_t dependentSliceSegmentFlag = 0;
     if (!firstSliceSegmentInPicFlag)
     {
         if (mPpsInfo.dependentSliceSegmentsEnabledFlag)
-            dependentSliceSegmentFlag = bits.readBit();
+            /* dependentSliceSegmentFlag =  */ bits.readBit();
         int sliceSegmentAddressLen = (int)ceil(log2((float)PicSizeInCtbsY));
         bits.readBit(sliceSegmentAddressLen);
     }
@@ -335,12 +324,11 @@ H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t 
     mFileReader.setCursor(curSample->sampleOffset);
     uint64_t last = curSample->sampleOffset + curSample->sampleSize;
 
-    uint32_t naluSize;
     curSample->frameType     = H26X_FRAME_Unknown;
     BinaryFileReader &reader = mFileReader;
     while (reader.getCursorPos() < last)
     {
-        naluSize = (uint32_t)reader.readUnsigned(naluLenSize, true);
+        uint32_t naluSize = (uint32_t)reader.readUnsigned(naluLenSize, true);
         if (0 == naluSize)
         {
             MP4_ERR("nalu size = 0\n");
@@ -464,7 +452,7 @@ int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
         auto pTrakBoxes = pMoov->getContainBoxes("trak");
         if (trackIdx >= pTrakBoxes.size())
         {
-            MP4_ERR("trak Index Too Big %d %zu\n", trackIdx, pTrakBoxes.size());
+            MP4_ERR("trak Index Too Big %u %zu\n", trackIdx, pTrakBoxes.size());
             break;
         }
 
@@ -599,7 +587,7 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
         return -1;
     }
 
-    Mp4TrackInfo *trackInfo = tracksInfo[trackIdx].get();
+    Mp4TrackInfo *trackInfo      = tracksInfo[trackIdx].get();
     Mp4MediaInfo *trackMediaInfo = trackInfo->mediaInfo.get();
 
     CommonBoxPtr      stbl = pTrakBox->getContainBoxRecursive("stbl", 3);

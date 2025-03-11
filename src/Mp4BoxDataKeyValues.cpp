@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <iterator>
 #include <vector>
 #include "Mp4BoxData.h"
 #include "Mp4Defs.h"
@@ -56,10 +58,8 @@ shared_ptr<const Mp4BoxData> Mp4BoxDataKeyValues::kvGetValue(const string &key) 
 std::vector<std::string> Mp4BoxDataKeyValues::kvGetKeys() const
 {
     std::vector<std::string> res;
-    for (auto &kv : mKeyValues)
-    {
-        res.push_back(kv.key);
-    }
+    std::transform(mKeyValues.begin(), mKeyValues.end(), std::back_inserter(res),
+                   [](const KeyValue &kv) { return kv.key; });
     return res;
 }
 

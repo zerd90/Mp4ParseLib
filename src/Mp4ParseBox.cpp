@@ -1,4 +1,5 @@
 
+#include <iterator>
 #include <math.h>
 
 #include "Mp4Parse.h"
@@ -121,11 +122,15 @@ struct userBoxCallback
 
 struct MP4_UUID
 {
-    MP4_UUID(const uint8_t uuid[MP4_UUID_LEN]) { memcpy(_uuid, uuid, MP4_UUID_LEN); }
+    explicit MP4_UUID(const uint8_t uuid[MP4_UUID_LEN])
+    {
+        assert(uuid != nullptr);
+        memcpy(_uuid, uuid, MP4_UUID_LEN);
+    }
 
     bool operator<(const MP4_UUID &other) const { return memcmp(_uuid, other._uuid, MP4_UUID_LEN) < 0; }
 
-    uint8_t _uuid[MP4_UUID_LEN];
+    uint8_t _uuid[MP4_UUID_LEN] = {0};
 };
 std::map<MP4_UUID, userBoxCallback> gUdtaRegisterCallbacks;
 
@@ -212,8 +217,8 @@ bool hasSampleTable(std::string boxType)
 
 int get_type_size(BinaryFileReader &reader, uint32_t &type, uint64_t &boxPos, uint64_t &boxSize, uint64_t &bodySize)
 {
-    int  ret        = 0;
-    char boxType[4] = {0};
+    uint32_t ret        = 0;
+    char     boxType[4] = {0};
     if (reader.getCursorPos() + 8 > reader.getFileSize())
     {
         MP4_ERR("size err %llu + 8 > %llu\n", reader.getCursorPos(), reader.getFileSize());
@@ -225,7 +230,12 @@ int get_type_size(BinaryFileReader &reader, uint32_t &type, uint64_t &boxPos, ui
 
     boxPos = reader.getCursorPos();
 
-    ret    = (int)reader.read(&box_sz, 4);
+    ret = reader.read(&box_sz, 4);
+    if (ret < 4)
+    {
+        MP4_ERR("read box size err %u\n", ret);
+        return -1;
+    }
     box_sz = bswap_32(box_sz);
 
     reader.read(boxType, 4);
@@ -266,10 +276,10 @@ int read_fullbox_version_flags(BinaryFileReader &reader, uint8_t *version, uint3
     uint64_t ret = 0;
 
     ret = reader.read(version, 1);
-    if (ret <= 0)
+    if (0 == ret)
         return -1;
     ret = reader.read((uint8_t *)flags + 1, 3);
-    if (ret <= 0)
+    if (0 == ret)
         return -1;
     *flags = bswap_32(*flags);
     return 0;
@@ -433,7 +443,7 @@ std::shared_ptr<Mp4BoxData> MovieHeaderBox::getData(std::shared_ptr<Mp4BoxData> 
 int TrackHeaderBox::parse(BinaryFileReader &reader, uint64_t boxPosition, uint64_t boxSize, uint64_t boxBodySize)
 {
     BOX_PARSE_BEGIN();
-    MP4_DBG("tkhd flags=%d\n", mFullboxFlags);
+    MP4_DBG("tkhd flags=%u\n", mFullboxFlags);
 
     if (mFullboxVersion == 1)
     {
@@ -1418,7 +1428,17 @@ std::shared_ptr<Mp4BoxData> UserDefineBox::getData(std::shared_ptr<Mp4BoxData> s
 
     return mDataFunc(mUserData);
 }
+
 std::string CommonBox::getBoxTypeStr() const
 {
     return boxType2Str(mBoxType);
 }
+
+std::vector<std::shared_ptr<Mp4Box>> CommonBox::getContainBoxes() const
+{
+    if (mInvalid)
+        return {};
+    std::vector<std::shared_ptr<Mp4Box>> res;
+    std::copy(mContainBoxes.begin(), mContainBoxes.end(), std::back_inserter(res));
+    return res;
+};

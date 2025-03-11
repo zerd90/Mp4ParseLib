@@ -19,43 +19,43 @@
 
 #endif
 
-#define MP4_ERR(fmt, ...)                                                                           \
+#define MP4_LOG(loglevel, fmt, ...)                                                                 \
     do                                                                                              \
     {                                                                                               \
-        char logBuffer[1024];                                                                       \
+        char logBuffer[1024] = {0};                                                                 \
         snprintf(logBuffer, sizeof(logBuffer), "[%s:%d]: " fmt, __func__, __LINE__, ##__VA_ARGS__); \
-        gLogCallback(MP4_LOG_LEVEL_ERR, logBuffer);                                           \
+        gLogCallback(loglevel, logBuffer);                                                          \
     } while (0)
 
-#define MP4_WARN(fmt, ...)                                                                          \
-    do                                                                                              \
-    {                                                                                               \
-        char logBuffer[1024];                                                                       \
-        snprintf(logBuffer, sizeof(logBuffer), "[%s:%d]: " fmt, __func__, __LINE__, ##__VA_ARGS__); \
-        gLogCallback(MP4_LOG_LEVEL_WARN, logBuffer);                                          \
+#define MP4_ERR(fmt, ...)                               \
+    do                                                  \
+    {                                                   \
+        MP4_LOG(MP4_LOG_LEVEL_ERR, fmt, ##__VA_ARGS__); \
     } while (0)
 
-#define MP4_INFO(fmt, ...)                                                                          \
-    do                                                                                              \
-    {                                                                                               \
-        char logBuffer[1024];                                                                       \
-        snprintf(logBuffer, sizeof(logBuffer), "[%s:%d]: " fmt, __func__, __LINE__, ##__VA_ARGS__); \
-        gLogCallback(MP4_LOG_LEVEL_INFO, logBuffer);                                          \
+#define MP4_WARN(fmt, ...)                               \
+    do                                                   \
+    {                                                    \
+        MP4_LOG(MP4_LOG_LEVEL_WARN, fmt, ##__VA_ARGS__); \
     } while (0)
 
-#define MP4_DBG(fmt, ...)                                                                           \
-    do                                                                                              \
-    {                                                                                               \
-        char logBuffer[1024];                                                                       \
-        snprintf(logBuffer, sizeof(logBuffer), "[%s:%d]: " fmt, __func__, __LINE__, ##__VA_ARGS__); \
-        gLogCallback(MP4_LOG_LEVEL_DBG, logBuffer);                                           \
+#define MP4_INFO(fmt, ...)                               \
+    do                                                   \
+    {                                                    \
+        MP4_LOG(MP4_LOG_LEVEL_INFO, fmt, ##__VA_ARGS__); \
+    } while (0)
+
+#define MP4_DBG(fmt, ...)                               \
+    do                                                  \
+    {                                                   \
+        MP4_LOG(MP4_LOG_LEVEL_DBG, fmt, ##__VA_ARGS__); \
     } while (0)
 
 #define MP4_PARSE_ERR(fmt, ...)                                     \
     do                                                              \
     {                                                               \
         MP4_ERR(fmt, ##__VA_ARGS__);                                \
-        char logBuffer[1024];                                       \
+        char logBuffer[1024] = {0};                                 \
         snprintf(logBuffer, sizeof(logBuffer), fmt, ##__VA_ARGS__); \
         mErrors.push(logBuffer);                                    \
     } while (0)
@@ -163,8 +163,8 @@ private:
 
     static const uint64_t      mBufferSize = 1024 * 1024;
     std::unique_ptr<uint8_t[]> mReadBuffer;
-    uint64_t                   mBufferStartOffset;
-    uint64_t                   mBufferContainSize;
+    uint64_t                   mBufferStartOffset = 0;
+    uint64_t                   mBufferContainSize = 0;
 };
 
 struct BitsReader

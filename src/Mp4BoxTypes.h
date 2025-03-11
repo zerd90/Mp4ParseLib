@@ -27,16 +27,8 @@ struct CommonBox : public Mp4Box
     virtual uint64_t                             getBoxSize() const override { return mBoxSize; }
     virtual uint32_t                             getBoxType() const override { return mBoxType; }
     virtual std::string                          getBoxTypeStr() const override;
-    virtual std::vector<std::shared_ptr<Mp4Box>> getContainBoxes() const override
-    {
-        if (mInvalid)
-            return {};
-        std::vector<std::shared_ptr<Mp4Box>> res;
-        for (auto &box : mContainBoxes)
-            res.push_back(box);
-        return res;
-    };
-    std::shared_ptr<Mp4BoxData> getData(std::shared_ptr<Mp4BoxData> src = nullptr) const override;
+    virtual std::vector<std::shared_ptr<Mp4Box>> getContainBoxes() const override;
+    std::shared_ptr<Mp4BoxData>                  getData(std::shared_ptr<Mp4BoxData> src = nullptr) const override;
 
     virtual std::string getDataString() { return getData()->toString(); }
     virtual bool        isFullbox(uint8_t &version, uint32_t &flags) override
@@ -449,7 +441,7 @@ using MovieFragmentRandomAccessOffsetBoxPtr = std::shared_ptr<MovieFragmentRando
 
 struct ChannelLayOutBox : public FullBox
 {
-    uint16_t channelCount; // from AudioSampleEntry
+    uint16_t channelCount = 0; // from AudioSampleEntry
 
 #define channelStructured 1
 #define objectStructured  2
@@ -460,22 +452,22 @@ struct ChannelLayOutBox : public FullBox
     uint8_t definedLayout = 0; // u8
     struct ChannelInfo
     {
-        uint8_t speakerPosition; // u8
+        uint8_t speakerPosition = 0; // u8
 
         //	if (speakerPosition == 126) {
-        int16_t azimuth;   // s16
-        int8_t  elevation; // s8
-                           //	}
+        int16_t azimuth   = 0; // s16
+        int8_t  elevation = 0; // s8
+                               //	}
     };
     // 		if (definedLayout==0){
     std::vector<ChannelInfo> channelsInfo;
     // 		} else {
-    uint64_t                 omittedChannelsMap; // u64
+    uint64_t                 omittedChannelsMap = 0; // u64
     //		}
     //	}
 
     // if (streamStructure & objectStructured)
-    uint8_t objCount;
+    uint8_t objCount = 0;
 
     ChannelLayOutBox() : FullBox("chnl") {}
 
@@ -487,7 +479,7 @@ using ChannelLayOutBoxPtr = std::shared_ptr<ChannelLayOutBox>;
 
 struct SamplingRateBox : public FullBox
 {
-    uint32_t samplingRate; // u32
+    uint32_t samplingRate = 0; // u32
 
     SamplingRateBox() : FullBox("srat") {}
 

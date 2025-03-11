@@ -7,7 +7,6 @@ using std::map;
 using std::shared_ptr;
 using std::string;
 
-
 map<ES_DESCRIPTOR_TAG_E, string> gDescriptorTypeString = {
     {          MP4ODescrTag,           "MP4ODescr"}, // Tag 0x01
     {         MP4IODescrTag,          "MP4IODescr"}, // Tag 0x02
@@ -44,14 +43,14 @@ uint32_t getDescriptorLength(BinaryFileReader &reader)
 shared_ptr<ESDescriptor> getDescriptor(BinaryFileReader &reader, uint64_t last)
 {
     uint64_t                 ret;
-    ES_DESCRIPTOR_TAG_E      tag = UnKnownTag;
+    uint8_t                  tag = UnKnownTag;
     shared_ptr<ESDescriptor> curDesc;
 
     if (reader.getCursorPos() + 2 > last)
         return curDesc;
 
     ret = reader.read(&tag, 1);
-    if (ret <= 0)
+    if (0 == ret)
     {
         MP4_ERR("read err %llu\n", ret);
         return curDesc;
@@ -60,25 +59,25 @@ shared_ptr<ESDescriptor> getDescriptor(BinaryFileReader &reader, uint64_t last)
     switch (tag)
     {
         case MP4ODescrTag:
-            curDesc = make_shared<MP4ODescr>(tag);
+            curDesc = make_shared<MP4ODescr>((ES_DESCRIPTOR_TAG_E)tag);
             break;
         case MP4IODescrTag:
-            curDesc = make_shared<MP4IODescr>(tag);
+            curDesc = make_shared<MP4IODescr>((ES_DESCRIPTOR_TAG_E)tag);
             break;
         case MP4ESDescrTag:
-            curDesc = make_shared<MP4ESDescr>(tag);
+            curDesc = make_shared<MP4ESDescr>((ES_DESCRIPTOR_TAG_E)tag);
             break;
         case MP4DecConfigDescrTag:
-            curDesc = make_shared<MP4DecConfigDescr>(tag);
+            curDesc = make_shared<MP4DecConfigDescr>((ES_DESCRIPTOR_TAG_E)tag);
             break;
         case MP4DecSpecificDescrTag:
-            curDesc = make_shared<MP4DecSpecificDescr>(tag);
+            curDesc = make_shared<MP4DecSpecificDescr>((ES_DESCRIPTOR_TAG_E)tag);
             break;
         case MP4SLDescrTag:
-            curDesc = make_shared<MP4SLDescr>(tag);
+            curDesc = make_shared<MP4SLDescr>((ES_DESCRIPTOR_TAG_E)tag);
             break;
         default:
-            curDesc = make_shared<ESDescriptor>(tag);
+            curDesc = make_shared<ESDescriptor>((ES_DESCRIPTOR_TAG_E)tag);
             MP4_WARN("unknown descriptor %#x\n", tag);
             return curDesc;
             break;
@@ -194,7 +193,7 @@ int MP4IODescr::parse(BinaryFileReader &reader, uint64_t last)
         if (reader.getCursorPos() + varLen > last)                     \
             return -1;                                                 \
         uint64_t _ret = reader.readData(ptr, varLen, parLen, reverse); \
-        if (_ret <= 0)                                                 \
+        if (0 == _ret)                                                 \
             return -1;                                                 \
     } while (0)
 
