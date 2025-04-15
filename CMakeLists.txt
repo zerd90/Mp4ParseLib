@@ -1,5 +1,5 @@
 # 最低CMake版本要求
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.21)
 
 # 项目名称
 project(Mp4ParseLib)
@@ -11,6 +11,11 @@ else()
 	set(INCLUDE_DIRECTORIES
 		${INCLUDE_DIRECTORIES}
 		${PROJECT_SOURCE_DIR}/include
+		PARENT_SCOPE
+	)
+	set(LINK_LIBRARIES
+		${LINK_LIBRARIES}
+		${PROJECT_NAME}
 		PARENT_SCOPE
 	)
 endif()
