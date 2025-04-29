@@ -43,10 +43,26 @@ std::shared_ptr<Mp4BoxData> SampleTableBox::getData(std::shared_ptr<Mp4BoxData> 
     {
         entries[0]->setColumnsName(entryTable);
     }
-    for (auto &entry : entries)
-    {
-        entry->addItemTo(entryTable);
-    }
+    entryTable->tableSetCallbacks(
+        [](const void *userData)
+        {
+            std::vector<std::shared_ptr<BasicSampleItem>> *pEntries =
+                (std::vector<std::shared_ptr<BasicSampleItem>> *)userData;
+            return pEntries->size();
+        },
+        [](const void *userData, uint64_t rowIdx)
+        {
+            std::vector<std::shared_ptr<BasicSampleItem>> *pEntries =
+                (std::vector<std::shared_ptr<BasicSampleItem>> *)userData;
+            return (*pEntries)[rowIdx]->getData();
+        },
+        [](const void *userData, uint64_t rowIdx, uint64_t colIdx)
+        {
+            std::vector<std::shared_ptr<BasicSampleItem>> *pEntries =
+                (std::vector<std::shared_ptr<BasicSampleItem>> *)userData;
+            return (*pEntries)[rowIdx]->getData(colIdx);
+        },
+        &entries);
     return item;
 }
 
@@ -281,7 +297,7 @@ int SampleGroupDescriptionBox::parse(BinaryFileReader &reader, uint64_t boxPosit
 
     if (mFullboxVersion >= 2)
     {
-        deafaultSampleDescIdx = reader.readU32(true);
+        defaultSampleDescIdx = reader.readU32(true);
     }
 
     entryCount = reader.readU32(true);
@@ -322,7 +338,7 @@ std::shared_ptr<Mp4BoxData> SampleGroupDescriptionBox::getData(std::shared_ptr<M
     if (1 == mFullboxVersion)
         item->kvAddPair("Default Length", defaultLength);
     if (mFullboxVersion >= 2)
-        item->kvAddPair("Default Sample Description Index", deafaultSampleDescIdx);
+        item->kvAddPair("Default Sample Description Index", defaultSampleDescIdx);
 
     SampleTableBox::getData(item);
 

@@ -2,7 +2,8 @@
 #include "Mp4SampleEntryTypes.h"
 #include "Mp4ParseInternal.h"
 
-#define MAX_ICC_PROFILE_LENGTH (1024 * 1024) // Maximum allowed ICC profile length in bytes (1 MB). Adjust if larger profiles are expected.
+#define MAX_ICC_PROFILE_LENGTH \
+    (1024 * 1024) // Maximum allowed ICC profile length in bytes (1 MB). Adjust if larger profiles are expected.
 int ColourInformationBox::parse(BinaryFileReader &reader, uint64_t boxPosition, uint64_t boxSize, uint64_t boxBodySize)
 {
     BOX_PARSE_BEGIN();
@@ -60,7 +61,23 @@ std::shared_ptr<Mp4BoxData> ColourInformationBox::getData(std::shared_ptr<Mp4Box
     }
     else if (MP4_BOX_MAKE_TYPE("rICC") == colorType || MP4_BOX_MAKE_TYPE("prof") == colorType)
     {
-        item->kvAddPair("ICC Profile", data2hex(iccProfile));
+        auto binaryData = Mp4BoxData::createBinaryData();
+        binaryData->binarySetCallbacks(
+            [](const void *userData)
+            {
+                const BinaryData *iccProfile = (const BinaryData *)userData;
+                return iccProfile->length;
+            },
+            [](uint64_t offset, const void *userData) -> uint8_t
+            {
+                const BinaryData *iccProfile = (const BinaryData *)userData;
+                if (offset >= iccProfile->length)
+                    return 0;
+                return iccProfile->ptr()[offset];
+            },
+            &iccProfile);
+
+        item->kvAddPair("ICC Profile", binaryData);
     }
     return item;
 }
@@ -251,10 +268,26 @@ std::shared_ptr<Mp4BoxData> HEVCDecoderConfigurationRecord::getData(std::shared_
             ->kvAddPair("Array " + std::to_string(i) + " NALU Number", arrays[i].numNalus);
         for (size_t j = 0, jm = arrays[i].nalus.size(); j < jm; j++)
         {
+            auto binaryData = Mp4BoxData::createBinaryData();
+            binaryData->binarySetCallbacks(
+                [](const void *userData)
+                {
+                    auto *nalu = (const HEVCDecoderConfigurationRecord::NaluItem::Nalu *)userData;
+                    return nalu->length;
+                },
+                [](uint64_t offset, const void *userData) -> uint8_t
+                {
+                    auto *nalu = (const HEVCDecoderConfigurationRecord::NaluItem::Nalu *)userData;
+                    if (offset >= nalu->length)
+                        return 0;
+                    return nalu->data.ptr()[offset];
+                },
+                &arrays[i].nalus[j]);
+
             item->kvAddPair("Array " + std::to_string(i) + " NALU " + std::to_string(j) + " Length",
                             arrays[i].nalus[j].length)
                 ->kvAddPair("Array " + std::to_string(i) + " NALU " + std::to_string(j) + " Data",
-                            data2hex(arrays[i].nalus[j].data));
+                            binaryData);
         }
     }
     return item;

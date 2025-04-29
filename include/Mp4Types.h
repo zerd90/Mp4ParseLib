@@ -21,7 +21,7 @@ struct Mp4Box
     virtual uint64_t    getBoxSize() const                           = 0;
     virtual bool        isFullbox(uint8_t &version, uint32_t &flags) = 0;
 
-    virtual std::vector<std::shared_ptr<Mp4Box>> getContainBoxes() const = 0;
+    virtual std::vector<std::shared_ptr<Mp4Box>> getSubBoxes() const = 0;
 
     virtual std::shared_ptr<Mp4BoxData> getData(std::shared_ptr<Mp4BoxData> src = nullptr) const = 0;
 };
@@ -59,6 +59,7 @@ enum MP4_CODEC_TYPE_E
     MP4_CODEC_MPEG4,
     MP4_CODEC_H264,
     MP4_CODEC_HEVC,
+    MP4_CODEC_H265 = MP4_CODEC_HEVC,
     MP4_CODEC_AAC,
     MP4_CODEC_MP4ALS,
     MP4_CODEC_MPEG2VIDEO,
@@ -287,8 +288,8 @@ struct Mp4RawSample
 {
     uint32_t                   trackIdx   = 0;
     uint64_t                   fileOffset = 0;
-    uint64_t                   sampleSize = 0;
-    uint64_t                   dataSize   = 0;
+    uint64_t                   sampleSize = 0;// sample size store in mp4 structure
+    uint64_t                   dataSize   = 0; // real data size, may larger than sampleSize since SPS/PPS/VPS attached
     uint64_t                   dtsMs      = 0;
     uint64_t                   ptsMs      = 0;
     uint64_t                   sampleIdx  = 0;

@@ -49,14 +49,16 @@ void generateResultTable(Mp4ParserHandle mp4_info, string dirPath)
         }
 
         trackInfoFile
-            << "sampleIdx, offset, size, pts(ms), dts(ms), dts_delta(ms), frame_type, nalu_type, isKeyFrame,"
-               ",chunk_idx, offset, size, sample_start, sampleCount, start_pts(ms), delta(ms), avg_bitrate(Kbps)"
+            << "sampleIdx, offset, offset(hex), size, size(hex), pts(ms), dts(ms), dts_delta(ms), frame_type, nalu_type, isKeyFrame,"
+               ",chunk_idx, offset, offset(hex), size, size(hex), sample_start, sampleCount, start_pts(ms), delta(ms), avg_bitrate(Kbps)"
             << std::endl;
         for (unsigned int j = 0; j < curTrackMedia->samplesInfo.size(); j++)
         {
             trackInfoFile << curTrackMedia->samplesInfo[j].sampleIdx << ","
-                          << "0x" << std::hex << curTrackMedia->samplesInfo[j].sampleOffset << ","
-                          << "0x" << curTrackMedia->samplesInfo[j].sampleSize << std::dec << ","
+                          << curTrackMedia->samplesInfo[j].sampleOffset << ","
+                          << "0x" << std::hex << curTrackMedia->samplesInfo[j].sampleOffset << std::dec << ","
+                          << curTrackMedia->samplesInfo[j].sampleSize << ","
+                          << "0x" << std::hex << curTrackMedia->samplesInfo[j].sampleSize << std::dec << ","
                           << curTrackMedia->samplesInfo[j].ptsMs << "," << curTrackMedia->samplesInfo[j].dtsMs << ","
                           << curTrackMedia->samplesInfo[j].dtsDeltaMs << ", ";
             auto codecType = mp4GetCodecType(curTrackMedia->codecCode);
@@ -74,7 +76,9 @@ void generateResultTable(Mp4ParserHandle mp4_info, string dirPath)
             {
                 trackInfoFile << ",," << curTrackMedia->chunksInfo[j].chunkIdx << ","
                               << (unsigned long long)curTrackMedia->chunksInfo[j].chunkOffset << ","
+                              << "0x" << std::hex << curTrackMedia->chunksInfo[j].chunkOffset << std::dec << ","
                               << (unsigned int)curTrackMedia->chunksInfo[j].chunkSize << ","
+                              << "0x" << std::hex << curTrackMedia->chunksInfo[j].chunkSize << std::dec << ","
                               << curTrackMedia->chunksInfo[j].sampleStartIdx << ","
                               << curTrackMedia->chunksInfo[j].sampleCount << ","
                               << curTrackMedia->chunksInfo[j].startPtsMs << ","

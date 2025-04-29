@@ -27,7 +27,7 @@ struct CommonBox : public Mp4Box
     virtual uint64_t                             getBoxSize() const override { return mBoxSize; }
     virtual uint32_t                             getBoxType() const override { return mBoxType; }
     virtual std::string                          getBoxTypeStr() const override;
-    virtual std::vector<std::shared_ptr<Mp4Box>> getContainBoxes() const override;
+    virtual std::vector<std::shared_ptr<Mp4Box>> getSubBoxes() const override;
     std::shared_ptr<Mp4BoxData>                  getData(std::shared_ptr<Mp4BoxData> src = nullptr) const override;
 
     virtual std::string getDataString() { return getData()->toString(); }
@@ -55,7 +55,7 @@ struct CommonBox : public Mp4Box
     }
 
     template <typename T = CommonBox>
-    std::shared_ptr<T> getContainBox(uint32_t require_type) const
+    std::shared_ptr<T> getSubBox(uint32_t require_type) const
     {
         std::shared_ptr<CommonBox> res;
         for (auto &subBox : mContainBoxes)
@@ -75,13 +75,13 @@ struct CommonBox : public Mp4Box
     }
 
     template <typename T = CommonBox>
-    std::shared_ptr<T> getContainBox(const char *typeStr) const
+    std::shared_ptr<T> getSubBox(const char *typeStr) const
     {
-        return getContainBox<T>(MP4_BOX_MAKE_TYPE(typeStr));
+        return getSubBox<T>(MP4_BOX_MAKE_TYPE(typeStr));
     }
 
     template <typename T = CommonBox>
-    std::shared_ptr<T> getContainBoxRecursive(uint32_t type, int layer = INT32_MAX) const
+    std::shared_ptr<T> getSubBoxRecursive(uint32_t type, int layer = INT32_MAX) const
     {
         if (layer <= 0)
             return nullptr;
@@ -94,7 +94,7 @@ struct CommonBox : public Mp4Box
                 res = subBox;
                 break;
             }
-            res = subBox->getContainBoxRecursive<T>(type, layer - 1);
+            res = subBox->getSubBoxRecursive<T>(type, layer - 1);
             if (res != nullptr)
                 break;
         }
@@ -105,13 +105,13 @@ struct CommonBox : public Mp4Box
     }
 
     template <typename T = CommonBox>
-    std::shared_ptr<T> getContainBoxRecursive(const char *type_str, int layer = INT32_MAX) const
+    std::shared_ptr<T> getSubBoxRecursive(const char *type_str, int layer = INT32_MAX) const
     {
-        return getContainBoxRecursive<T>(MP4_BOX_MAKE_TYPE(type_str), layer);
+        return getSubBoxRecursive<T>(MP4_BOX_MAKE_TYPE(type_str), layer);
     }
 
     template <typename T = CommonBox>
-    std::vector<std::shared_ptr<T>> getContainBoxes(uint32_t type) const
+    std::vector<std::shared_ptr<T>> getSubBoxes(uint32_t type) const
     {
         std::shared_ptr<T>              item;
         std::vector<std::shared_ptr<T>> res;
@@ -131,9 +131,9 @@ struct CommonBox : public Mp4Box
     }
 
     template <typename T = CommonBox>
-    std::vector<std::shared_ptr<T>> getContainBoxes(const char *type_str) const
+    std::vector<std::shared_ptr<T>> getSubBoxes(const char *type_str) const
     {
-        return getContainBoxes<T>(MP4_BOX_MAKE_TYPE(type_str));
+        return getSubBoxes<T>(MP4_BOX_MAKE_TYPE(type_str));
     }
 
 protected:
@@ -158,7 +158,7 @@ using CommonBoxPtr = std::shared_ptr<CommonBox>;
 
 struct UserDefineBox : public CommonBox
 {
-    explicit UserDefineBox(uint32_t boxType, BoxParseFunc parseFunc, BoxDataFunc dataFunc);
+    explicit UserDefineBox(uint32_t boxType, BoxParseFunc parseFunc, BoxDataFunc dataFunc, void *userData);
 
     int parse(BinaryFileReader &reader, uint64_t boxPosition, uint64_t boxSize, uint64_t boxBodySize) override;
 
@@ -510,7 +510,6 @@ struct UuidBox : public CommonBox
 private:
     uint8_t  uuid[MP4_UUID_LEN] = {0};
     uint64_t uuidBodyPos        = 0;
-    void    *userData           = 0;
 };
 using UuidBoxPtr = std::shared_ptr<UuidBox>;
 

@@ -7,6 +7,7 @@
 #include "Mp4Parse.h"
 #include <map>
 #include <queue>
+#include <chrono>
 
 #define set_zero_ar(ar) memset(ar, 0, sizeof(ar))
 #define set_zero_st(st) memset(&st, 0, sizeof(st))
@@ -103,13 +104,17 @@ public:
     virtual int getVideoSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoFrame &frm) override;
     virtual int getSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4RawSample &outFrame) override;
 
-    Mp4BoxPtr                      asBox() const override { return shared_from_this(); }
-    virtual std::string         getBasicInfoString() const override;
+    Mp4BoxPtr           asBox() const override { return shared_from_this(); }
+    virtual std::string getBasicInfoString() const override;
 
     virtual H26X_FRAME_TYPE_E   parseVideoNaluType(uint32_t trackId, uint64_t sampleIdx) override;
     std::shared_ptr<Mp4BoxData> getData(std::shared_ptr<Mp4BoxData> src = nullptr) const override;
     int parse(BinaryFileReader &reader, uint64_t boxPosition, uint64_t boxSize, uint64_t boxBodySize) override
     {
+        MP4_UNUSED(reader);
+        MP4_UNUSED(boxPosition);
+        MP4_UNUSED(boxSize);
+        MP4_UNUSED(boxBodySize);
         return 0;
     }
 
@@ -160,7 +165,7 @@ private:
         uint32_t picHeightInLumaSamples            = 0;
     } mHevcSPSInfo;
 
-    std::map<int /* track index, start from 0 */, int> mNaluLengthSize;
+    std::map<int /* track index, start from 0 */, uint16_t> mNaluLengthSize;
 };
 
 #endif

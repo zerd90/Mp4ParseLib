@@ -53,7 +53,7 @@ int printBoxProperty(const Mp4Box *box, int layer, FILE *fp)
 
     printBoxData(data, layer, fp);
 
-    auto containBoxes = box->getContainBoxes();
+    auto containBoxes = box->getSubBoxes();
 
     for (unsigned int i = 0; i < containBoxes.size(); i++)
     {

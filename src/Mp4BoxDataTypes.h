@@ -83,7 +83,7 @@ public:
     virtual uint64_t size() const override
     {
         assert(MP4_BOX_DATA_TYPE_KEY_VALUE_PAIRS == mObjectType || MP4_BOX_DATA_TYPE_ARRAY == mObjectType
-               || MP4_BOX_DATA_TYPE_TABLE == mObjectType);
+               || MP4_BOX_DATA_TYPE_TABLE == mObjectType || MP4_BOX_DATA_TYPE_BINARY == mObjectType);
         return 0;
     }
 
@@ -96,12 +96,14 @@ public:
     std::string kvGetKey(uint64_t idx) const override
     {
         assert(MP4_BOX_DATA_TYPE_KEY_VALUE_PAIRS == mObjectType);
+        MP4_UNUSED(idx);
         return std::string();
     }
 
     virtual std::shared_ptr<const Mp4BoxData> kvGetValue(const std::string &key) const override
     {
         assert(MP4_BOX_DATA_TYPE_KEY_VALUE_PAIRS == mObjectType);
+        MP4_UNUSED(key);
         return shared_from_this();
     }
 
@@ -113,35 +115,49 @@ public:
     std::shared_ptr<const Mp4BoxData> arrayGetData(uint64_t idx) const override
     {
         assert(MP4_BOX_DATA_TYPE_ARRAY == mObjectType);
+        MP4_UNUSED(idx);
         return shared_from_this();
     }
     virtual std::shared_ptr<const Mp4BoxData> operator[](uint64_t idx) const override
     {
         assert(MP4_BOX_DATA_TYPE_ARRAY == mObjectType || MP4_BOX_DATA_TYPE_TABLE == mObjectType);
+        MP4_UNUSED(idx);
         return shared_from_this();
     }
 
     virtual std::shared_ptr<Mp4BoxData> arrayAddItem(std::shared_ptr<Mp4BoxData> val) override
     {
         assert(MP4_BOX_DATA_TYPE_ARRAY == mObjectType);
+        MP4_UNUSED(val);
         return shared_from_this();
     }
     virtual std::shared_ptr<Mp4BoxData> kvAddPair(const std::string &key, std::shared_ptr<Mp4BoxData> val) override
     {
         assert(MP4_BOX_DATA_TYPE_KEY_VALUE_PAIRS == mObjectType);
+        MP4_UNUSED(key);
         return shared_from_this();
+    }
+
+    virtual void tableSetCallbacks(
+        const std::function<uint64_t(const void *)>                                              &getRowCountCallback,
+        const std::function<std::shared_ptr<const Mp4BoxData>(const void *, uint64_t)>           &getRowCallback,
+        const std::function<std::shared_ptr<const Mp4BoxData>(const void *, uint64_t, uint64_t)> &getCellCallback,
+        const void                                                                               *userData) override
+    {
+        assert(MP4_BOX_DATA_TYPE_TABLE == mObjectType);
+        MP4_UNUSED(getRowCountCallback);
+        MP4_UNUSED(getRowCallback);
+        MP4_UNUSED(getCellCallback);
+        MP4_UNUSED(userData);
     }
 
     virtual std::shared_ptr<Mp4BoxData> tableAddColumn(const std::string &columnName) override
     {
         assert(MP4_BOX_DATA_TYPE_TABLE == mObjectType);
+        MP4_UNUSED(columnName);
         return shared_from_this();
     }
-    virtual std::shared_ptr<Mp4BoxData> tableAddRow(std::shared_ptr<Mp4BoxData> row) override
-    {
-        assert(MP4_BOX_DATA_TYPE_TABLE == mObjectType);
-        return shared_from_this();
-    }
+
     virtual size_t tableGetColumnCount() const override
     {
         assert(MP4_BOX_DATA_TYPE_TABLE == mObjectType);
@@ -150,6 +166,7 @@ public:
     virtual std::string tableGetColumnName(size_t columnIdx) const override
     {
         assert(MP4_BOX_DATA_TYPE_TABLE == mObjectType);
+        MP4_UNUSED(columnIdx);
         return std::string();
     }
     size_t tableGetRowCount() const override
@@ -160,7 +177,31 @@ public:
     std::shared_ptr<const Mp4BoxData> tableGetRow(size_t rowIdx) const override
     {
         assert(MP4_BOX_DATA_TYPE_TABLE == mObjectType);
+        MP4_UNUSED(rowIdx);
         return nullptr;
+    }
+
+    virtual void
+    binarySetCallbacks(const std::function<uint64_t(const void *userData)>                 &getSizeCallback,
+                       const std::function<uint8_t(uint64_t offset, const void *userData)> &getDataCallback,
+                       const void                                                          *userData) override
+    {
+        assert(MP4_BOX_DATA_TYPE_BINARY == mObjectType);
+        MP4_UNUSED(getSizeCallback);
+        MP4_UNUSED(getDataCallback);
+        MP4_UNUSED(userData);
+    }
+
+    virtual uint64_t binaryGetSize() const override
+    {
+        assert(MP4_BOX_DATA_TYPE_BINARY == mObjectType);
+        return 0;
+    }
+    virtual uint8_t binaryGetData(uint64_t offset) const override
+    {
+        assert(MP4_BOX_DATA_TYPE_BINARY == mObjectType);
+        MP4_UNUSED(offset);
+        return 0;
     }
 
     friend std::ostream &operator<<(std::ostream &os, const Mp4BoxDataBase &obj);

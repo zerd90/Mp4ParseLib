@@ -73,6 +73,17 @@ using file_stat64_t = struct stat;
 #endif
 
 std::function<void(MP4_LOG_LEVEL_E, const char *)> gLogCallback = defaultLogCallback;
+void setMp4ParseLogCallback(std::function<void(MP4_LOG_LEVEL_E, const char *)> logCallback)
+{
+    if (nullptr == logCallback)
+    {
+        logCallback = defaultLogCallback;
+    }
+    else
+    {
+        gLogCallback = logCallback;
+    }
+}
 
 BinaryFileReader::BinaryFileReader()
 {
@@ -374,7 +385,7 @@ uint64_t BinaryFileReader::readUnsigned(uint16_t bytes, bool reverse)
             return readU64(reverse);
         default:
             uint64_t res = 0;
-            for(uint16_t i = 0; i < bytes; i++)
+            for (uint16_t i = 0; i < bytes; i++)
             {
                 res = (res << 8) | readU8();
             }
@@ -402,7 +413,7 @@ int64_t BinaryFileReader::readSigned(uint16_t bytes, bool reverse)
             return readS64(reverse);
         default:
             int64_t res = 0;
-            for(uint16_t i = 0; i < bytes; i++)
+            for (uint16_t i = 0; i < bytes; i++)
             {
                 res = (res << 8) | readS8();
             }

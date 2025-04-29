@@ -174,17 +174,17 @@ int MP4ParserImpl::parse(string filepath)
     }
 
     mMp4Type = MP4_TYPE_ISO;
-    if (getContainBoxRecursive<CommonBox>("moof") != nullptr || getContainBoxRecursive<CommonBox>("mvex") != nullptr)
+    if (getSubBoxRecursive<CommonBox>("moof") != nullptr || getSubBoxRecursive<CommonBox>("mvex") != nullptr)
         mMp4Type = MP4_TYPE_FRAGMENT;
     if (MP4_TYPE_ISO == mMp4Type)
     {
-        auto moov = getContainBox("moov");
+        auto moov = getSubBox("moov");
         if (!moov)
         {
             MP4_PARSE_ERR("moov not found\n");
             return -1;
         }
-        auto tackBoxes = moov->getContainBoxes("trak");
+        auto tackBoxes = moov->getSubBoxes("trak");
         if (tackBoxes.empty())
         {
             MP4_PARSE_ERR("there's no trak\n");
@@ -192,7 +192,7 @@ int MP4ParserImpl::parse(string filepath)
         }
     }
     CommonBoxPtr curBox;
-    if ((curBox = getContainBoxRecursive<CommonBox>("ftyp")) != nullptr)
+    if ((curBox = getSubBoxRecursive<CommonBox>("ftyp")) != nullptr)
     {
         FileTypeBoxPtr pFtypBox = dynamic_pointer_cast<FileTypeBox>(curBox);
         if (pFtypBox == nullptr)
@@ -203,13 +203,13 @@ int MP4ParserImpl::parse(string filepath)
         }
     }
 
-    if ((curBox = getContainBoxRecursive<CommonBox>("moov", 1)) != nullptr)
+    if ((curBox = getSubBoxRecursive<CommonBox>("moov", 1)) != nullptr)
     {
         MovieHeaderBoxPtr    mvhd;
         CommonBoxPtr         mvex;
         vector<CommonBoxPtr> trakBoxes;
 
-        mvhd = curBox->getContainBox<MovieHeaderBox>("mvhd");
+        mvhd = curBox->getSubBox<MovieHeaderBox>("mvhd");
         if (nullptr == mvhd)
         {
             MP4_PARSE_ERR("get mvhd fail\n");
@@ -226,11 +226,11 @@ int MP4ParserImpl::parse(string filepath)
             }
         }
 
-        mvex      = curBox->getContainBox<ContainBox>("mvex");
-        trakBoxes = curBox->getContainBoxes("trak");
+        mvex      = curBox->getSubBox<ContainBox>("mvex");
+        trakBoxes = curBox->getSubBoxes("trak");
         if (mvex != nullptr)
         {
-            vector<CommonBoxPtr> trexBoxes = mvex->getContainBoxes("trex");
+            vector<CommonBoxPtr> trexBoxes = mvex->getSubBoxes("trex");
             if (trexBoxes.size() != trakBoxes.size())
                 MP4_PARSE_ERR("err %zu != %zu\n", trexBoxes.size(), trakBoxes.size());
         }
@@ -247,7 +247,7 @@ int MP4ParserImpl::parse(string filepath)
 
             TimeToSampleBoxPtr stts;
 
-            TrackHeaderBoxPtr tkhd = curTrak->getContainBox<TrackHeaderBox>("tkhd");
+            TrackHeaderBoxPtr tkhd = curTrak->getSubBox<TrackHeaderBox>("tkhd");
             if (tkhd != nullptr)
             {
                 curTrackInfo->trakIndex = trakIdx++;
@@ -266,7 +266,7 @@ int MP4ParserImpl::parse(string filepath)
                 MP4_PARSE_ERR("tkhd not found\n");
             }
 
-            HandlerBoxPtr hdlr      = curTrak->getContainBoxRecursive<HandlerBox>("hdlr");
+            HandlerBoxPtr hdlr      = curTrak->getSubBoxRecursive<HandlerBox>("hdlr");
             curTrackInfo->trackType = TRACK_TYPE_BUTT;
             if (hdlr != nullptr)
             {
@@ -309,19 +309,22 @@ int MP4ParserImpl::parse(string filepath)
 
     mAvailable = true;
 
+    mBoxOffset = 0;
+    mBoxSize   = mFileReader.getFileSize();
+
     return 0;
 }
 
 bool MP4ParserImpl::isTrackHasProperty(uint32_t trackIdx, MP4_TRACK_PROPERTY_E prop) const
 {
-    CommonBoxPtr         moov      = getContainBox("moov");
-    vector<CommonBoxPtr> trakBoxes = moov->getContainBoxes("trak");
+    CommonBoxPtr         moov      = getSubBox("moov");
+    vector<CommonBoxPtr> trakBoxes = moov->getSubBoxes("trak");
     if (trackIdx >= trakBoxes.size())
     {
         MP4_ERR("wrong idx %u\n", trackIdx);
         return false;
     }
-    CommonBoxPtr tkhd = trakBoxes[trackIdx]->getContainBox("tkhd");
+    CommonBoxPtr tkhd = trakBoxes[trackIdx]->getSubBox("tkhd");
     if (tkhd != nullptr)
         return (tkhd->mFullboxFlags & prop) != 0;
     else
@@ -361,10 +364,10 @@ int MP4ParserImpl::getSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4RawSample
 
 int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoFrame &outFrame)
 {
-    CommonBoxPtr         moov       = getContainBox("moov");
-    vector<CommonBoxPtr> trakBoxes  = moov->getContainBoxes("trak");
+    CommonBoxPtr         moov       = getSubBox("moov");
+    vector<CommonBoxPtr> trakBoxes  = moov->getSubBoxes("trak");
     CommonBoxPtr         curTrakBox = trakBoxes[trackIdx];
-    TrackHeaderBoxPtr    tkhd       = curTrakBox->getContainBox<TrackHeaderBox>("tkhd");
+    TrackHeaderBoxPtr    tkhd       = curTrakBox->getSubBox<TrackHeaderBox>("tkhd");
 
     Mp4SampleItem *pCurSample = &tracksInfo[trackIdx]->mediaInfo->samplesInfo[sampleIdx];
     uint64_t       samplePos  = pCurSample->sampleOffset;
@@ -377,8 +380,8 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
 
     vector<BinaryData> naluAttach;
     uint64_t           attachSize = 0;
-    int                lengthSize = 0;
-    CommonBoxPtr       stsd       = curTrakBox->getContainBoxRecursive("stsd");
+    uint16_t           lengthSize = 0;
+    CommonBoxPtr       stsd       = curTrakBox->getSubBoxRecursive("stsd");
 
     if (stsd->mContainBoxes.size() <= 0)
     {
@@ -392,7 +395,7 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
         {
             CommonBoxPtr hvc1 = stsd->mContainBoxes[0];
 
-            HEVCConfigurationBoxPtr hvcC = std::dynamic_pointer_cast<HEVCConfigurationBox>(hvc1->getContainBox("hvcC"));
+            HEVCConfigurationBoxPtr hvcC = std::dynamic_pointer_cast<HEVCConfigurationBox>(hvc1->getSubBox("hvcC"));
             if (hvcC == nullptr)
             {
                 MP4_PARSE_ERR("hvcC is null\n");
@@ -416,7 +419,7 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
         {
             CommonBoxPtr avc = stsd->mContainBoxes[0];
 
-            AVCConfigurationBoxPtr avcC = dynamic_pointer_cast<AVCConfigurationBox>(avc->getContainBox("avcC"));
+            AVCConfigurationBoxPtr avcC = dynamic_pointer_cast<AVCConfigurationBox>(avc->getSubBox("avcC"));
             if (avcC == nullptr)
             {
                 MP4_PARSE_ERR("avcC is null\n");
@@ -478,7 +481,7 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
     {
         uint32_t naluSize = 0;
 
-        naluSize = mFileReader.readUnsigned(lengthSize, true);
+        naluSize = (uint32_t)mFileReader.readUnsigned(lengthSize, true);
 
         frameData[copyPos]     = 0;
         frameData[copyPos + 1] = 0;
@@ -511,10 +514,10 @@ int MP4ParserImpl::getVideoSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4Vide
     }
     else
     {
-        CommonBoxPtr         moov        = getContainBox("moov");
-        vector<CommonBoxPtr> trakBoxes   = moov->getContainBoxes("trak");
+        CommonBoxPtr         moov        = getSubBox("moov");
+        vector<CommonBoxPtr> trakBoxes   = moov->getSubBoxes("trak");
         CommonBoxPtr         pCurTrakBox = trakBoxes[trackIdx];
-        TrackHeaderBoxPtr    tkhd        = pCurTrakBox->getContainBox<TrackHeaderBox>("tkhd");
+        TrackHeaderBoxPtr    tkhd        = pCurTrakBox->getSubBox<TrackHeaderBox>("tkhd");
 
         Mp4SampleItem *curSample = &tracksInfo[trackIdx]->mediaInfo->samplesInfo[sampleIdx];
 
@@ -541,19 +544,19 @@ int MP4ParserImpl::getVideoSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4Vide
 #define ADTS_HEAD_SIZE 7
 
 int sampleRateTable[][2] = {
-    { 0, 96000},
-    { 1, 88200},
-    { 2, 64000},
-    { 3, 48000},
-    { 4, 44100},
-    { 5, 32000},
-    { 6, 24000},
-    { 7, 22050},
-    { 8, 16000},
-    { 9, 12000},
+    {0,  96000},
+    {1,  88200},
+    {2,  64000},
+    {3,  48000},
+    {4,  44100},
+    {5,  32000},
+    {6,  24000},
+    {7,  22050},
+    {8,  16000},
+    {9,  12000},
     {10, 11025},
-    {11,  8000},
-    {12,  7350},
+    {11, 8000 },
+    {12, 7350 },
 };
 
 int writeAdts(uint8_t *buf, uint8_t codec, uint64_t size, int sampleRate, int channel)
@@ -649,7 +652,7 @@ string MP4ParserImpl::getBasicInfoString() const
         return string();
     }
 
-    FileTypeBoxPtr ftyp = getContainBox<FileTypeBox>("ftyp");
+    FileTypeBoxPtr ftyp = getSubBox<FileTypeBox>("ftyp");
 
     infoString << "File: " << mFileReader.getFileBaseName() << mFileReader.getFileExtension() << endl;
 
@@ -734,7 +737,7 @@ std::shared_ptr<Mp4BoxData> MP4ParserImpl::getData(std::shared_ptr<Mp4BoxData> s
     else
         item = src;
 
-    auto ftyp = getContainBox<FileTypeBox>("ftyp");
+    auto ftyp = getSubBox<FileTypeBox>("ftyp");
     if (ftyp != nullptr)
     {
         std::shared_ptr<Mp4BoxData> fileInfoItem = item->kvAddKey("File Info", MP4_BOX_DATA_TYPE_KEY_VALUE_PAIRS);
@@ -753,7 +756,7 @@ std::shared_ptr<Mp4BoxData> MP4ParserImpl::getData(std::shared_ptr<Mp4BoxData> s
     }
 
     auto movieItem = item->kvAddKey("Movie Info", MP4_BOX_DATA_TYPE_KEY_VALUE_PAIRS);
-    auto mvhd      = getContainBoxRecursive<MovieHeaderBox>("mvhd");
+    auto mvhd      = getSubBoxRecursive<MovieHeaderBox>("mvhd");
     if (mvhd != nullptr)
     {
         uint64_t durationMs = 0;

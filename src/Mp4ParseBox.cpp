@@ -15,11 +15,11 @@ using std::map;
 using std::shared_ptr;
 using std::string;
 
-#define BOX_SIZE_LENGTH 4
-#define BOX_TYPE_LENGTH 4
+#define BOX_SIZE_LENGTH   4
+#define BOX_TYPE_LENGTH   4
 #define BOX_HEADER_LENGTH (BOX_SIZE_LENGTH + BOX_TYPE_LENGTH)
 
-#define BOX_LARGE_SIZE_LENGTH 8
+#define BOX_LARGE_SIZE_LENGTH      8
 // size in header is 1
 #define BOX_EXTENDED_HEADER_LENGTH (BOX_HEADER_LENGTH + BOX_LARGE_SIZE_LENGTH)
 
@@ -43,62 +43,62 @@ map<MP4_MEDIA_TYPE_E, std::string> gMediaTypeName = {
 map<MP4_TRACK_TYPE_E, std::string> gHdlrTypeName = {
     {TRACK_TYPE_VIDEO, "vide"},
     {TRACK_TYPE_AUDIO, "soun"},
-    { TRACK_TYPE_META, "meta"},
-    { TRACK_TYPE_HINT, "hint"},
-    { TRACK_TYPE_TEXT, "text"},
-    { TRACK_TYPE_SUBT, "subt"},
-    { TRACK_TYPE_FDSM, "fdsm"}
+    {TRACK_TYPE_META,  "meta"},
+    {TRACK_TYPE_HINT,  "hint"},
+    {TRACK_TYPE_TEXT,  "text"},
+    {TRACK_TYPE_SUBT,  "subt"},
+    {TRACK_TYPE_FDSM,  "fdsm"}
 };
 
 map<MP4_TRACK_TYPE_E, string> gTrackTypeName = {
-    {TRACK_TYPE_VIDEO,    "video track"},
-    {TRACK_TYPE_AUDIO,    "sound track"},
-    { TRACK_TYPE_META,     "meta track"},
-    { TRACK_TYPE_HINT,     "hint track"},
-    { TRACK_TYPE_TEXT,     "text track"},
-    { TRACK_TYPE_SUBT, "subtitle track"},
-    { TRACK_TYPE_FDSM,     "font track"}
+    {TRACK_TYPE_VIDEO, "video track"   },
+    {TRACK_TYPE_AUDIO, "sound track"   },
+    {TRACK_TYPE_META,  "meta track"    },
+    {TRACK_TYPE_HINT,  "hint track"    },
+    {TRACK_TYPE_TEXT,  "text track"    },
+    {TRACK_TYPE_SUBT,  "subtitle track"},
+    {TRACK_TYPE_FDSM,  "font track"    }
 };
 
 map<uint8_t, Mp4CodecString> gCodecTypeMap = {
-    {0x08,             {MP4_CODEC_MOV_TEXT, "MOV_TEXT"}},
-    {0x20,                   {MP4_CODEC_MPEG4, "MPEG4"}},
-    {0x21,                     {MP4_CODEC_H264, "H264"}},
-    {0x23,                     {MP4_CODEC_HEVC, "HEVC"}},
-    {0x40,        {MP4_CODEC_AAC, "AAC Low Complexity"}},
-    {0x40,                 {MP4_CODEC_MP4ALS, "MP4ALS"}}, /* 14496-3 ALS */
-    {0x61,    {MP4_CODEC_MPEG2VIDEO, "MPEG2VIDEO Main"}}, /* MPEG-2 Main */
-    {0x60,  {MP4_CODEC_MPEG2VIDEO, "MPEG2VIDEO Simple"}}, /* MPEG-2 Simple */
-    {0x62,     {MP4_CODEC_MPEG2VIDEO, "MPEG2VIDEO SNR"}}, /* MPEG-2 SNR */
+    {0x08, {MP4_CODEC_MOV_TEXT, "MOV_TEXT"}            },
+    {0x20, {MP4_CODEC_MPEG4, "MPEG4"}                  },
+    {0x21, {MP4_CODEC_H264, "H264"}                    },
+    {0x23, {MP4_CODEC_HEVC, "HEVC"}                    },
+    {0x40, {MP4_CODEC_AAC, "AAC Low Complexity"}       },
+    {0x40, {MP4_CODEC_MP4ALS, "MP4ALS"}                }, /* 14496-3 ALS */
+    {0x61, {MP4_CODEC_MPEG2VIDEO, "MPEG2VIDEO Main"}   }, /* MPEG-2 Main */
+    {0x60, {MP4_CODEC_MPEG2VIDEO, "MPEG2VIDEO Simple"} }, /* MPEG-2 Simple */
+    {0x62, {MP4_CODEC_MPEG2VIDEO, "MPEG2VIDEO SNR"}    }, /* MPEG-2 SNR */
     {0x63, {MP4_CODEC_MPEG2VIDEO, "MPEG2VIDEO Spatial"}}, /* MPEG-2 Spatial */
-    {0x64,    {MP4_CODEC_MPEG2VIDEO, "MPEG2VIDEO High"}}, /* MPEG-2 High */
-    {0x65,     {MP4_CODEC_MPEG2VIDEO, "MPEG2VIDEO 422"}}, /* MPEG-2 422 */
-    {0x66,                  {MP4_CODEC_AAC, "AAC Main"}}, /* MPEG-2 AAC Main */
-    {0x67,                   {MP4_CODEC_AAC, "AAC Low"}}, /* MPEG-2 AAC Low */
-    {0x68,                   {MP4_CODEC_AAC, "AAC SSR"}}, /* MPEG-2 AAC SSR */
-    {0x69,                       {MP4_CODEC_MP3, "MP3"}}, /* 13818-3 */
-    {0x69,                       {MP4_CODEC_MP2, "MP2"}}, /* 11172-3 */
-    {0x6A,         {MP4_CODEC_MPEG1VIDEO, "MPEG1VIDEO"}}, /* 11172-2 */
-    {0x6B,                       {MP4_CODEC_MP3, "MP3"}}, /* 11172-3 */
-    {0x6C,                   {MP4_CODEC_MJPEG, "MJPEG"}}, /* 10918-1 */
-    {0x6D,                       {MP4_CODEC_PNG, "PNG"}},
-    {0x6E,             {MP4_CODEC_JPEG2000, "JPEG2000"}}, /* 15444-1 */
-    {0xA3,                       {MP4_CODEC_VC1, "VC1"}},
-    {0xA4,                   {MP4_CODEC_DIRAC, "DIRAC"}},
-    {0xA5,                       {MP4_CODEC_AC3, "AC3"}},
-    {0xA6,                     {MP4_CODEC_EAC3, "EAC3"}},
-    {0xA9,                       {MP4_CODEC_DTS, "DTS"}}, /* mp4ra.org */
-    {0xC0,                       {MP4_CODEC_VP9, "VP9"}}, /* nonstandard, update when there is a standard value */
-    {0xC1,                     {MP4_CODEC_FLAC, "FLAC"}}, /* nonstandard, update when there is a standard value */
-    {0xD0,                   {MP4_CODEC_TSCC2, "TSCC2"}}, /* nonstandard, camtasia uses it */
-    {0xD1,                     {MP4_CODEC_EVRC, "EVRC"}}, /* nonstandard, pvAuthor uses it */
-    {0xDD,                 {MP4_CODEC_VORBIS, "VORBIS"}}, /* nonstandard, gpac uses it */
+    {0x64, {MP4_CODEC_MPEG2VIDEO, "MPEG2VIDEO High"}   }, /* MPEG-2 High */
+    {0x65, {MP4_CODEC_MPEG2VIDEO, "MPEG2VIDEO 422"}    }, /* MPEG-2 422 */
+    {0x66, {MP4_CODEC_AAC, "AAC Main"}                 }, /* MPEG-2 AAC Main */
+    {0x67, {MP4_CODEC_AAC, "AAC Low"}                  }, /* MPEG-2 AAC Low */
+    {0x68, {MP4_CODEC_AAC, "AAC SSR"}                  }, /* MPEG-2 AAC SSR */
+    {0x69, {MP4_CODEC_MP3, "MP3"}                      }, /* 13818-3 */
+    {0x69, {MP4_CODEC_MP2, "MP2"}                      }, /* 11172-3 */
+    {0x6A, {MP4_CODEC_MPEG1VIDEO, "MPEG1VIDEO"}        }, /* 11172-2 */
+    {0x6B, {MP4_CODEC_MP3, "MP3"}                      }, /* 11172-3 */
+    {0x6C, {MP4_CODEC_MJPEG, "MJPEG"}                  }, /* 10918-1 */
+    {0x6D, {MP4_CODEC_PNG, "PNG"}                      },
+    {0x6E, {MP4_CODEC_JPEG2000, "JPEG2000"}            }, /* 15444-1 */
+    {0xA3, {MP4_CODEC_VC1, "VC1"}                      },
+    {0xA4, {MP4_CODEC_DIRAC, "DIRAC"}                  },
+    {0xA5, {MP4_CODEC_AC3, "AC3"}                      },
+    {0xA6, {MP4_CODEC_EAC3, "EAC3"}                    },
+    {0xA9, {MP4_CODEC_DTS, "DTS"}                      }, /* mp4ra.org */
+    {0xC0, {MP4_CODEC_VP9, "VP9"}                      }, /* nonstandard, update when there is a standard value */
+    {0xC1, {MP4_CODEC_FLAC, "FLAC"}                    }, /* nonstandard, update when there is a standard value */
+    {0xD0, {MP4_CODEC_TSCC2, "TSCC2"}                  }, /* nonstandard, camtasia uses it */
+    {0xD1, {MP4_CODEC_EVRC, "EVRC"}                    }, /* nonstandard, pvAuthor uses it */
+    {0xDD, {MP4_CODEC_VORBIS, "VORBIS"}                }, /* nonstandard, gpac uses it */
     /* nonstandard, see unsupported-embedded-subs-2.mp4 */
-    {0xE0,     {MP4_CODEC_DVD_SUBTITLE, "DVD_SUBTITLE"}},
-    {0xE1,                   {MP4_CODEC_QCELP, "QCELP"}},
-    {0x01,     {MP4_CODEC_MPEG4SYSTEMS, "MPEG4SYSTEMS"}},
-    {0x02,     {MP4_CODEC_MPEG4SYSTEMS, "MPEG4SYSTEMS"}},
-    {   0,                     {MP4_CODEC_NONE, "NONE"}},
+    {0xE0, {MP4_CODEC_DVD_SUBTITLE, "DVD_SUBTITLE"}    },
+    {0xE1, {MP4_CODEC_QCELP, "QCELP"}                  },
+    {0x01, {MP4_CODEC_MPEG4SYSTEMS, "MPEG4SYSTEMS"}    },
+    {0x02, {MP4_CODEC_MPEG4SYSTEMS, "MPEG4SYSTEMS"}    },
+    {0,    {MP4_CODEC_NONE, "NONE"}                    },
 };
 
 string &mp4GetHandlerName(MP4_TRACK_TYPE_E type)
@@ -126,6 +126,7 @@ struct userBoxCallback
 {
     BoxParseFunc parseDataCallback;
     BoxDataFunc  getDataCallback;
+    void        *userData;
 };
 
 struct MP4_UUID
@@ -142,16 +143,18 @@ struct MP4_UUID
 };
 std::map<MP4_UUID, userBoxCallback> gUdtaRegisterCallbacks;
 
-void registerUdtaCallback(uint8_t uuid[MP4_UUID_LEN], BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback)
+void registerUdtaCallback(uint8_t uuid[MP4_UUID_LEN], BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback,
+                          void *userData)
 {
-    gUdtaRegisterCallbacks[MP4_UUID(uuid)] = {parseDataCallback, getDataCallback};
+    gUdtaRegisterCallbacks[MP4_UUID(uuid)] = {parseDataCallback, getDataCallback, userData};
 }
 
 std::map<Mp4BoxType, userBoxCallback> gUserDefineBoxCallbacks;
 
-void registerBoxCallback(Mp4BoxType boxType, BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback)
+void registerBoxCallback(Mp4BoxType boxType, BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback,
+                         void *userData)
 {
-    gUserDefineBoxCallbacks[boxType] = {parseDataCallback, getDataCallback};
+    gUserDefineBoxCallbacks[boxType] = {parseDataCallback, getDataCallback, userData};
 }
 
 map<uint32_t, uint32_t> compatible_box_types = {
@@ -183,10 +186,11 @@ std::string boxType2Str(uint32_t type)
 
 uint32_t getCompatibleBoxType(uint32_t type)
 {
-    if (compatible_box_types.find(type) == compatible_box_types.end())
+    auto it = compatible_box_types.find(type);
+    if (it == compatible_box_types.end())
         return type;
     else
-        return compatible_box_types[type];
+        return it->second;
 }
 
 bool isSameBoxType(uint32_t type1, uint32_t type2)
@@ -238,7 +242,7 @@ int get_type_size(BinaryFileReader &reader, uint32_t &type, uint64_t &boxPos, ui
 
     boxPos = reader.getCursorPos();
 
-    ret = reader.read(&box_sz, BOX_SIZE_LENGTH);
+    ret = (uint32_t)reader.read(&box_sz, BOX_SIZE_LENGTH);
     if (ret < 4)
     {
         MP4_ERR("read box size err %u\n", ret);
@@ -1075,7 +1079,7 @@ int UuidBox::parse(BinaryFileReader &reader, uint64_t boxPosition, uint64_t boxS
 
     reader.read(udtaData.get(), udtaDataSize);
 
-    int parseRes = callbacks->second.parseDataCallback(udtaData.get(), udtaDataSize, &userData);
+    int parseRes = callbacks->second.parseDataCallback(udtaData.get(), udtaDataSize, callbacks->second.userData);
 
     BOX_PARSE_END();
     return parseRes;
@@ -1106,8 +1110,9 @@ CommonBoxPtr MP4ParserImpl::parseBox(BinaryFileReader &reader, CommonBoxPtr pare
     auto userDefineCallback = gUserDefineBoxCallbacks.find(type);
     if (userDefineCallback != gUserDefineBoxCallbacks.end())
     {
-        curBox = make_shared<UserDefineBox>(type, userDefineCallback->second.parseDataCallback,
-                                            userDefineCallback->second.getDataCallback);
+        curBox =
+            make_shared<UserDefineBox>(type, userDefineCallback->second.parseDataCallback,
+                                       userDefineCallback->second.getDataCallback, userDefineCallback->second.userData);
     }
     else
     {
@@ -1275,10 +1280,12 @@ CommonBoxPtr MP4ParserImpl::parseBox(BinaryFileReader &reader, CommonBoxPtr pare
         curBox->mInvalid = true;
         return curBox;
     }
-
-    while (reader.getCursorPos() < curBox->mBodyPos + curBox->mBodySize)
+    if (reader.getCursorPos() < curBox->mBodyPos + curBox->mBodySize)
     {
         MP4_INFO("parse sub boxes for %s from %#llx\n", boxType2Str(curBox->mBoxType).c_str(), reader.getCursorPos());
+    }
+    while (reader.getCursorPos() < curBox->mBodyPos + curBox->mBodySize)
+    {
         CommonBoxPtr subBox = parseBox(reader, curBox, parseErr);
         if (subBox == nullptr)
         {
@@ -1286,8 +1293,8 @@ CommonBoxPtr MP4ParserImpl::parseBox(BinaryFileReader &reader, CommonBoxPtr pare
             return curBox;
         }
 
-        MP4_INFO("get sub box %s for %s\n", boxType2Str(subBox->mBoxType).c_str(),
-                 boxType2Str(curBox->mBoxType).c_str());
+        MP4_DBG("get sub box %s for %s\n", boxType2Str(subBox->mBoxType).c_str(),
+                boxType2Str(curBox->mBoxType).c_str());
 
         subBox->mParentBox = curBox;
         curBox->mContainBoxes.push_back(subBox);
@@ -1307,20 +1314,22 @@ CommonBoxPtr MP4ParserImpl::parseBox(BinaryFileReader &reader, CommonBoxPtr pare
                 MP4_PARSE_ERR("chnl cast fail\n");
                 continue;
             }
-            chnl->channelCount                   = audioSampleEntry->channelCount;
-            uint64_t oldPos                      = reader.getCursorPos();
+            chnl->channelCount = audioSampleEntry->channelCount;
+            uint64_t oldPos    = reader.getCursorPos();
             reader.setCursor(chnl->mBodyPos);
             chnl->parse(reader, chnl->mBoxOffset, chnl->mBoxSize, chnl->mBodySize);
             reader.setCursor(oldPos);
         }
     }
+    if (!curBox->mContainBoxes.empty())
+        MP4_INFO("parse sub boxes for %s done\n", boxType2Str(curBox->mBoxType).c_str());
 
     // check if there's sdtp to parse
     if (MP4_BOX_MAKE_TYPE("stbl") == compType)
     {
-        SampleDependencyTypeBoxPtr sdtp = dynamic_pointer_cast<SampleDependencyTypeBox>(curBox->getContainBox("sdtp"));
-        SampleSizeBoxPtr           stsz = dynamic_pointer_cast<SampleSizeBox>(curBox->getContainBox("stsz"));
-        CompactSampleSizeBoxPtr    stz2 = dynamic_pointer_cast<CompactSampleSizeBox>(curBox->getContainBox("stz2"));
+        SampleDependencyTypeBoxPtr sdtp = dynamic_pointer_cast<SampleDependencyTypeBox>(curBox->getSubBox("sdtp"));
+        SampleSizeBoxPtr           stsz = dynamic_pointer_cast<SampleSizeBox>(curBox->getSubBox("stsz"));
+        CompactSampleSizeBoxPtr    stz2 = dynamic_pointer_cast<CompactSampleSizeBox>(curBox->getSubBox("stz2"));
 
         if (stsz != nullptr && stz2 != nullptr)
         {
@@ -1361,7 +1370,7 @@ std::shared_ptr<Mp4BoxData> UuidBox::getData(std::shared_ptr<Mp4BoxData> src) co
     auto callbacks = gUdtaRegisterCallbacks.find(MP4_UUID(uuid));
     if (gUdtaRegisterCallbacks.end() != callbacks)
     {
-        return callbacks->second.getDataCallback(userData);
+        return callbacks->second.getDataCallback(callbacks->second.userData);
     }
 
     std::shared_ptr<Mp4BoxData> item = nullptr;
@@ -1419,19 +1428,22 @@ std::shared_ptr<Mp4BoxData> UdtaBox::getData(std::shared_ptr<Mp4BoxData> src) co
     return item;
 }
 
-UserDefineBox::UserDefineBox(uint32_t boxType, BoxParseFunc parseFunc, BoxDataFunc dataFunc) : CommonBox(boxType)
+UserDefineBox::UserDefineBox(uint32_t boxType, BoxParseFunc parseFunc, BoxDataFunc dataFunc, void *userData)
+    : CommonBox(boxType), mParseFunc(parseFunc), mDataFunc(dataFunc), mUserData(userData)
 {
-    assert(parseFunc != nullptr && dataFunc != nullptr);
 }
+
 int UserDefineBox::parse(BinaryFileReader &reader, uint64_t boxPosition, uint64_t boxSize, uint64_t boxBodySize)
 {
     if (nullptr == mParseFunc)
         return -1;
+    MP4_UNUSED(boxPosition);
+    MP4_UNUSED(boxSize);
 
     BinaryData data(boxBodySize);
     reader.read(data.ptr(), boxBodySize);
 
-    return mParseFunc(data.ptr(), boxBodySize, &mUserData);
+    return mParseFunc(data.ptr(), boxBodySize, mUserData);
 }
 std::shared_ptr<Mp4BoxData> UserDefineBox::getData(std::shared_ptr<Mp4BoxData> src) const
 {
@@ -1446,7 +1458,7 @@ std::string CommonBox::getBoxTypeStr() const
     return boxType2Str(mBoxType);
 }
 
-std::vector<std::shared_ptr<Mp4Box>> CommonBox::getContainBoxes() const
+std::vector<std::shared_ptr<Mp4Box>> CommonBox::getSubBoxes() const
 {
     if (mInvalid)
         return {};

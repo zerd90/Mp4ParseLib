@@ -4,6 +4,7 @@
 #include "Mp4BoxDataArray.h"
 #include "Mp4BoxDataKeyValues.h"
 #include "Mp4BoxDataTable.h"
+#include "Mp4BoxDataBinary.h"
 
 using namespace std;
 
@@ -31,9 +32,11 @@ shared_ptr<Mp4BoxData> newObject(MP4_BOX_DATA_TYPE_E type)
         {
             return make_shared<Mp4BoxDataTable>();
         }
+        case MP4_BOX_DATA_TYPE_BINARY:
+        {
+            return make_shared<Mp4BoxDataBinary>();
+        }
     }
-
-    return nullptr;
 }
 
 ostream &operator<<(ostream &os, shared_ptr<const Mp4BoxData> pobj)
@@ -74,6 +77,11 @@ shared_ptr<Mp4BoxData> Mp4BoxData::createKeyValuePairsData()
 shared_ptr<Mp4BoxData> Mp4BoxData::createTableData()
 {
     return newObject(MP4_BOX_DATA_TYPE_TABLE);
+}
+
+shared_ptr<Mp4BoxData> Mp4BoxData::createBinaryData()
+{
+    return newObject(MP4_BOX_DATA_TYPE_BINARY);
 }
 
 std::shared_ptr<Mp4BoxData> Mp4BoxData::createData(MP4_BOX_DATA_TYPE_E dataType)

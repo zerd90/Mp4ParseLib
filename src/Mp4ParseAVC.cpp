@@ -19,15 +19,45 @@ std::shared_ptr<Mp4BoxData> AVCDecoderConfigurationRecord::getData(std::shared_p
         ->kvAddPair("SPS Count", spsCount);
     for (size_t i = 0, im = sps.size(); i < im; i++)
     {
+        auto binaryData = Mp4BoxData::createBinaryData();
         item->kvAddPair("SPS " + std::to_string(i) + " Length", sps[i].length)
-            ->kvAddPair("SPS " + std::to_string(i) + " Data", data2hex(sps[i].data));
+            ->kvAddPair("SPS " + std::to_string(i) + " Data", binaryData);
+        binaryData->binarySetCallbacks(
+            [](const void *userData)
+            {
+                const AVCDecoderConfigurationRecord::Nalu *sps = (AVCDecoderConfigurationRecord::Nalu *)userData;
+                return sps->length;
+            },
+            [](uint64_t offset, const void *userData) -> uint8_t
+            {
+                const AVCDecoderConfigurationRecord::Nalu *sps = (AVCDecoderConfigurationRecord::Nalu *)userData;
+                if (offset >= sps->length)
+                    return 0;
+                return sps->data.ptr()[offset];
+            },
+            &sps[i]);
     }
     item->kvAddPair("PPS Count", ppsCount);
     for (size_t i = 0, im = pps.size(); i < im; i++)
     {
+        auto binaryData = Mp4BoxData::createBinaryData();
         item->kvAddPair("PPS " + std::to_string(i) + " Length", pps[i].length)
-            ->kvAddPair("PPS " + std::to_string(i) + " Data", data2hex(pps[i].data));
-    }
+            ->kvAddPair("PPS " + std::to_string(i) + " Data", binaryData);
+        binaryData->binarySetCallbacks(
+            [](const void *userData)
+            {
+                const AVCDecoderConfigurationRecord::Nalu *pps = (AVCDecoderConfigurationRecord::Nalu *)userData;
+                return pps->length;
+            },
+            [](uint64_t offset, const void *userData) -> uint8_t
+            {
+                const AVCDecoderConfigurationRecord::Nalu *pps = (AVCDecoderConfigurationRecord::Nalu *)userData;
+                if (offset >= pps->length)
+                    return 0;
+                return pps->data.ptr()[offset];
+            },
+            &pps[i]);
+       }
 
     if (avcProfileIndication == 100 || avcProfileIndication == 110 || avcProfileIndication == 122
         || avcProfileIndication == 144)
@@ -38,7 +68,22 @@ std::shared_ptr<Mp4BoxData> AVCDecoderConfigurationRecord::getData(std::shared_p
             ->kvAddPair("SPSE Count", spseCount);
         for (size_t i = 0, im = spse.size(); i < im; i++)
         {
-            item->kvAddPair("PPS " + std::to_string(i), data2hex(spse[i].data));
+            auto binaryData = Mp4BoxData::createBinaryData();
+            item->kvAddPair("SPSE " + std::to_string(i), binaryData);
+            binaryData->binarySetCallbacks(
+                [](const void *userData)
+                {
+                    const AVCDecoderConfigurationRecord::Nalu *spse = (AVCDecoderConfigurationRecord::Nalu *)userData;
+                    return spse->length;
+                },
+                [](uint64_t offset, const void *userData) -> uint8_t
+                {
+                    const AVCDecoderConfigurationRecord::Nalu *spse = (AVCDecoderConfigurationRecord::Nalu *)userData;
+                    if (offset >= spse->length)
+                        return 0;
+                    return spse->data.ptr()[offset];
+                },
+                &spse[i]);
         }
     }
     return item;

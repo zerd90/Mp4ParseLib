@@ -7,7 +7,9 @@ using namespace std;
 
 shared_ptr<const Mp4BoxData> Mp4BoxDataTable::tableGetRow(uint64_t idx) const
 {
-    return mTableItems[MIN(idx, mTableItems.size() - 1)];
+    if (mGetRowCallback != nullptr)
+        return mGetRowCallback(mCallbackData, idx);
+    return nullptr;
 }
 
 std::shared_ptr<const Mp4BoxData> Mp4BoxDataTable::operator[](uint64_t idx) const
@@ -28,21 +30,22 @@ string Mp4BoxDataTable::toStringInternal(bool bHex) const
             res += ", ";
     }
     res += "}, Items:{";
-    for (size_t idx = 0; idx < mTableItems.size(); idx++)
+    size_t rows = tableGetRowCount();
+    for (size_t idx = 0; idx < rows; idx++)
     {
         res += "{";
-        auto &rowItem = *mTableItems[idx];
-        for (size_t valIdx = 0; valIdx < mTableItems[idx]->size(); valIdx++)
+        auto rowItem = tableGetRow(idx);
+        for (size_t valIdx = 0; valIdx < rowItem->size(); valIdx++)
         {
             if (bHex)
-                res += rowItem[valIdx]->toHexString();
+                res += (*rowItem)[valIdx]->toHexString();
             else
-                res += rowItem[valIdx]->toString();
-            if (valIdx != rowItem.size() - 1)
+                res += (*rowItem)[valIdx]->toString();
+            if (valIdx != (*rowItem).size() - 1)
                 res += ", ";
         }
         res += "}";
-        if (idx != mTableItems.size() - 1)
+        if (idx != rows - 1)
             res += ", ";
     }
     res += "}}";
@@ -64,12 +67,6 @@ std::string Mp4BoxDataTable::tableGetColumnName(uint64_t idx) const
     return mColumnsName[MIN(idx, mColumnsName.size() - 1)];
 }
 
-std::shared_ptr<Mp4BoxData> Mp4BoxDataTable::tableAddRow(std::shared_ptr<Mp4BoxData> row)
-{
-    mTableItems.push_back(row);
-    return shared_from_this();
-}
-
 std::shared_ptr<Mp4BoxData> Mp4BoxDataTable::tableAddColumn(const std::string &columnName)
 {
     mColumnsName.push_back(columnName);
@@ -78,15 +75,28 @@ std::shared_ptr<Mp4BoxData> Mp4BoxDataTable::tableAddColumn(const std::string &c
 
 uint64_t Mp4BoxDataTable::size() const
 {
-    return mTableItems.size();
+    return tableGetRowCount();
 }
 
 size_t Mp4BoxDataTable::tableGetRowCount() const
 {
-    return mTableItems.size();
+    if (mGetRowCountCallback == nullptr)
+        return 0;
+    return mGetRowCountCallback(mCallbackData);
 }
 
 size_t Mp4BoxDataTable::tableGetColumnCount() const
 {
     return mColumnsName.size();
+}
+void Mp4BoxDataTable::tableSetCallbacks(
+    const std::function<uint64_t(const void *)>                                              &getRowCountCallback,
+    const std::function<std::shared_ptr<const Mp4BoxData>(const void *, uint64_t)>           &getRowCallback,
+    const std::function<std::shared_ptr<const Mp4BoxData>(const void *, uint64_t, uint64_t)> &getCellCallback,
+    const void                                                                               *userData)
+{
+    mGetRowCountCallback = getRowCountCallback;
+    mGetRowCallback      = getRowCallback;
+    mGetCellCallback     = getCellCallback;
+    mCallbackData        = userData;
 }

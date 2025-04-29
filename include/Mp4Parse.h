@@ -41,12 +41,12 @@ Mp4ParserHandle                    createMp4Parser();
 // data is after uuid(for uuid boxes) or box type(for other boxes);
 // you can store the data in *pData in any form you prefer;
 // return 0 if success, otherwise return a negative value;
-using BoxParseFunc = std::function<int(uint8_t *data, uint64_t dataSize, void **pData)>;
+using BoxParseFunc = std::function<int(uint8_t *data, uint64_t dataSize, void *userData)>;
 // pData is the same as the one in BoxParseFunc;
-using BoxDataFunc  = std::function<std::shared_ptr<Mp4BoxData>(void *pData)>;
-void registerUdtaCallback(uint8_t uuid[MP4_UUID_LEN], BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback);
-void registerBoxCallback(Mp4BoxType boxType, BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback);
+using BoxDataFunc  = std::function<std::shared_ptr<Mp4BoxData>(void *userData)>;
+void registerUdtaCallback(uint8_t uuid[MP4_UUID_LEN], BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback, void *userData);
+void registerBoxCallback(Mp4BoxType boxType, BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback, void *userData);
 
 void defaultLogCallback(MP4_LOG_LEVEL_E logLevel, const char *logBuffer);
-
+void setMp4ParseLogCallback(std::function<void(MP4_LOG_LEVEL_E, const char *)> logCallback);
 #endif

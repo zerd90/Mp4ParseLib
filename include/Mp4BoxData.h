@@ -5,6 +5,7 @@
 #include "Mp4Defs.h"
 #include <assert.h>
 
+#include <functional>
 #include <string>
 #include <memory>
 #include <vector>
@@ -19,6 +20,7 @@ typedef enum
     MP4_BOX_DATA_TYPE_KEY_VALUE_PAIRS,
     MP4_BOX_DATA_TYPE_ARRAY,
     MP4_BOX_DATA_TYPE_TABLE,
+    MP4_BOX_DATA_TYPE_BINARY,
     MP4_BOX_DATA_TYPE_UNKNOWN
 } MP4_BOX_DATA_TYPE_E;
 
@@ -82,14 +84,13 @@ public:
     {
         (tableAddColumn(str), ...);
     }
-    virtual std::shared_ptr<Mp4BoxData> tableAddRow(std::shared_ptr<Mp4BoxData> row) = 0;
-    template <typename... Args>
-    void tableAddRow(Args... args)
-    {
-        std::shared_ptr<Mp4BoxData> item = createArrayData();
-        addRowValue(item, args...);
-        tableAddRow(item);
-    }
+
+    virtual void tableSetCallbacks(
+        const std::function<uint64_t(const void *)>                                              &getRowCountCallback,
+        const std::function<std::shared_ptr<const Mp4BoxData>(const void *, uint64_t)>           &getRowCallback,
+        const std::function<std::shared_ptr<const Mp4BoxData>(const void *, uint64_t, uint64_t)> &getCellCallback,
+        const void                                                                               *userData) = 0;
+
     virtual size_t                            tableGetColumnCount() const                = 0;
     virtual std::string                       tableGetColumnName(size_t columnIdx) const = 0;
     virtual size_t                            tableGetRowCount() const                   = 0;
@@ -103,6 +104,15 @@ public:
     static std::shared_ptr<Mp4BoxData> createArrayData();
     static std::shared_ptr<Mp4BoxData> createKeyValuePairsData();
     static std::shared_ptr<Mp4BoxData> createTableData();
+    static std::shared_ptr<Mp4BoxData> createBinaryData();
+
+    // for binary data
+    virtual void
+                     binarySetCallbacks(const std::function<uint64_t(const void *userData)>                 &getSizeCallback,
+                                        const std::function<uint8_t(uint64_t offset, const void *userData)> &getDataCallback,
+                                        const void                                                          *userData) = 0;
+    virtual uint64_t binaryGetSize() const                    = 0;
+    virtual uint8_t  binaryGetData(uint64_t offset) const     = 0;
 
 private:
     std::shared_ptr<Mp4BoxData> createData(MP4_BOX_DATA_TYPE_E dataType);

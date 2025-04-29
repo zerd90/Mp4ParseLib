@@ -44,16 +44,16 @@ uint8_t getCodecFromEsds(ESDBoxPtr esds)
 
 uint8_t getCodecFromStsd(SampleDescriptionBoxPtr stsd)
 {
-    uint8_t res;
-    auto    containBoxes = stsd->getContainBoxes();
-    if (stsd->entryCount == 0 || containBoxes.empty())
+    uint8_t res      = 0;
+    auto    subBoxes = stsd->getSubBoxes();
+    if (stsd->entryCount == 0 || subBoxes.empty())
     {
         MP4_ERR("no codec info %u\n", stsd->entryCount);
         res = 0;
     }
     else
     {
-        switch (containBoxes[0]->getBoxType())
+        switch (subBoxes[0]->getBoxType())
         {
             case MP4_BOX_MAKE_TYPE("avc1"):
             case MP4_BOX_MAKE_TYPE("avc2"):
@@ -68,8 +68,8 @@ uint8_t getCodecFromStsd(SampleDescriptionBoxPtr stsd)
             case MP4_BOX_MAKE_TYPE("mp4v"):
             case MP4_BOX_MAKE_TYPE("mp4a"):
             {
-                auto subBoxes = containBoxes[0]->getContainBoxes();
-                for (auto &subBox : subBoxes)
+                auto mp4aSubBoxes = subBoxes[0]->getSubBoxes();
+                for (auto &subBox : mp4aSubBoxes)
                 {
                     if (subBox->getBoxType() == MP4_BOX_MAKE_TYPE("esds"))
                     {
@@ -81,7 +81,7 @@ uint8_t getCodecFromStsd(SampleDescriptionBoxPtr stsd)
                 break;
             }
             default:
-                MP4_ERR("unknown codec type %s\n", containBoxes[0]->getBoxTypeStr().c_str());
+                MP4_ERR("unknown codec type %s\n", subBoxes[0]->getBoxTypeStr().c_str());
                 res = 0;
                 break;
         }
@@ -316,9 +316,6 @@ H26X_FRAME_TYPE_E MP4ParserImpl::getH265FrameType(int naluType, BinaryData &data
 
 H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t sampleIdx)
 {
-    if (mNaluLengthSize.find(trackIdx) == mNaluLengthSize.end())
-        return H26X_FRAME_Unknown;
-
     if (trackIdx >= tracksInfo.size())
         return H26X_FRAME_Unknown;
 
@@ -331,10 +328,11 @@ H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t 
     if (MP4_CODEC_H264 != codecType && MP4_CODEC_HEVC != codecType)
         return H26X_FRAME_Unknown;
 
-    int naluLenSize = mNaluLengthSize[trackIdx];
-
-    if (codecType != MP4_CODEC_H264 && codecType != MP4_CODEC_HEVC)
+    auto it = mNaluLengthSize.find(trackIdx);
+    if (it == mNaluLengthSize.end())
         return H26X_FRAME_Unknown;
+
+    uint16_t naluLenSize = it->second;
 
     Mp4SampleItem *curSample = &mp4TrackInfo->mediaInfo->samplesInfo[sampleIdx];
     uint64_t       oldPos    = mFileReader.getCursorPos();
@@ -365,7 +363,7 @@ H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t 
                 naluType = (uint8_t)bitsReader.readBit(5);
                 if (naluType > H264_NALU_MAX)
                 {
-                    MP4_ERR("H264 Nalu Type %d\n", naluType);
+                    MP4_ERR("H264 Nalu Unkown Type %d\n", naluType);
                     break;
                 }
                 curSample->naluTypes.push_back(naluType);
@@ -403,7 +401,7 @@ H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t 
                 naluType = (uint8_t)bitsReader.readBit(6);
                 if (naluType > H265_NALU_MAX)
                 {
-                    MP4_ERR("H265 Nalu Type %d\n", naluType);
+                    MP4_ERR("H265 Nalu Unkown Type %d\n", naluType);
                     break;
                 }
                 curSample->naluTypes.push_back(naluType);
@@ -460,13 +458,13 @@ int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
     SampleDescriptionBoxPtr stsd;
     do
     {
-        auto pMoov = getContainBox("moov");
+        auto pMoov = getSubBox("moov");
         if (nullptr == pMoov)
         {
             MP4_ERR("moov box missing\n");
             break;
         }
-        auto pTrakBoxes = pMoov->getContainBoxes("trak");
+        auto pTrakBoxes = pMoov->getSubBoxes("trak");
         if (trackIdx >= pTrakBoxes.size())
         {
             MP4_ERR("trak Index Too Big %u %zu\n", trackIdx, pTrakBoxes.size());
@@ -483,14 +481,14 @@ int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
         return -1;
     }
 
-    stbl = pTrakBox->getContainBoxRecursive("stbl", 3);
+    stbl = pTrakBox->getSubBoxRecursive("stbl", 3);
     if (stbl == nullptr)
     {
         MP4_ERR("%d stbl not parsed\n", mp4TrackInfo->trackId);
         return -1;
     }
 
-    stsd = stbl->getContainBox<SampleDescriptionBox>("stsd");
+    stsd = stbl->getSubBox<SampleDescriptionBox>("stsd");
     if (stsd == nullptr)
     {
         MP4_ERR("stsd not found\n");
@@ -518,7 +516,7 @@ int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
     BinaryData pps, sps;
     if (MP4_CODEC_HEVC == codecType)
     {
-        HEVCConfigurationBoxPtr hvcC = pTrakBox->getContainBoxRecursive<HEVCConfigurationBox>("hvcC");
+        HEVCConfigurationBoxPtr hvcC = pTrakBox->getSubBoxRecursive<HEVCConfigurationBox>("hvcC");
         for (unsigned int i = 0; i < hvcC->HEVCConfig.arrayCount; ++i)
         {
             if (H265_NALU_PPS == hvcC->HEVCConfig.arrays[i].naluType)
@@ -575,12 +573,12 @@ int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
 
     if (MP4_CODEC_H264 == codecType)
     {
-        AVCConfigurationBoxPtr avcC = pTrakBox->getContainBoxRecursive<AVCConfigurationBox>("avcC");
+        AVCConfigurationBoxPtr avcC = pTrakBox->getSubBoxRecursive<AVCConfigurationBox>("avcC");
         mNaluLengthSize[trackIdx]   = avcC->AVCConfig.lengthSize;
     }
     else if (MP4_CODEC_HEVC == codecType)
     {
-        HEVCConfigurationBoxPtr hvcC = pTrakBox->getContainBoxRecursive<HEVCConfigurationBox>("hvcC");
+        HEVCConfigurationBoxPtr hvcC = pTrakBox->getSubBoxRecursive<HEVCConfigurationBox>("hvcC");
         mNaluLengthSize[trackIdx]    = hvcC->HEVCConfig.lengthSize;
     }
 
@@ -596,13 +594,13 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
     CommonBoxPtr pTrakBox;
     do
     {
-        auto pMoov = getContainBox("moov");
+        auto pMoov = getSubBox("moov");
         if (nullptr == pMoov)
         {
             MP4_ERR("moov box missing\n");
             break;
         }
-        auto pTrakBoxes = pMoov->getContainBoxes("trak");
+        auto pTrakBoxes = pMoov->getSubBoxes("trak");
         if (trackIdx >= pTrakBoxes.size())
         {
             MP4_ERR("trak Index Too Big %llu %zu\n", trackIdx, pTrakBoxes.size());
@@ -622,8 +620,8 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
     Mp4TrackInfo *trackInfo      = tracksInfo[trackIdx].get();
     Mp4MediaInfo *trackMediaInfo = trackInfo->mediaInfo.get();
 
-    CommonBoxPtr      stbl = pTrakBox->getContainBoxRecursive("stbl", 3);
-    MediaHeaderBoxPtr mdhd = pTrakBox->getContainBoxRecursive<MediaHeaderBox>("mdhd");
+    CommonBoxPtr      stbl = pTrakBox->getSubBoxRecursive("stbl", 3);
+    MediaHeaderBoxPtr mdhd = pTrakBox->getSubBoxRecursive<MediaHeaderBox>("mdhd");
 
     if (stbl == nullptr)
     {
@@ -631,15 +629,15 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
         return -1;
     }
 
-    SampleDescriptionBoxPtr stsd = stbl->getContainBox<SampleDescriptionBox>("stsd");
-    SampleTableBoxPtr       stss = stbl->getContainBox<SampleTableBox>("stss");
-    SampleSizeBoxPtr        stsz = stbl->getContainBox<SampleSizeBox>("stsz");
-    SampleTableBoxPtr       stz2 = stbl->getContainBox<SampleTableBox>("stz2");
-    SampleTableBoxPtr       stco = stbl->getContainBox<SampleTableBox>("stco");
-    SampleTableBoxPtr       co64 = stbl->getContainBox<SampleTableBox>("co64");
-    SampleTableBoxPtr       stts = stbl->getContainBox<SampleTableBox>("stts");
-    SampleTableBoxPtr       stsc = stbl->getContainBox<SampleTableBox>("stsc");
-    SampleTableBoxPtr       ctts = stbl->getContainBox<SampleTableBox>("ctts");
+    SampleDescriptionBoxPtr stsd = stbl->getSubBox<SampleDescriptionBox>("stsd");
+    SampleTableBoxPtr       stss = stbl->getSubBox<SampleTableBox>("stss");
+    SampleSizeBoxPtr        stsz = stbl->getSubBox<SampleSizeBox>("stsz");
+    SampleTableBoxPtr       stz2 = stbl->getSubBox<SampleTableBox>("stz2");
+    SampleTableBoxPtr       stco = stbl->getSubBox<SampleTableBox>("stco");
+    SampleTableBoxPtr       co64 = stbl->getSubBox<SampleTableBox>("co64");
+    SampleTableBoxPtr       stts = stbl->getSubBox<SampleTableBox>("stts");
+    SampleTableBoxPtr       stsc = stbl->getSubBox<SampleTableBox>("stsc");
+    SampleTableBoxPtr       ctts = stbl->getSubBox<SampleTableBox>("ctts");
 
     MP4_CODEC_TYPE_E codeType;
 
@@ -688,6 +686,7 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
 
     uint64_t chunkStart = 0;
 
+    auto start = std::chrono::steady_clock::now();
     for (unsigned int chunkIdx = 0; chunkIdx < chunkCount; ++chunkIdx)
     {
         Mp4ChunkItem curChunk;
@@ -730,6 +729,7 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
     if (stss != nullptr)
         nextIframeIdx = stss->getEntry<stssItem>(stssIdx)->sampleNumber - 1;
 
+    start = std::chrono::steady_clock::now();
     for (unsigned int i = 0; i < sampleCount; ++i)
     {
         if (i >= trackMediaInfo->chunksInfo[curChunkIdx].sampleStartIdx
@@ -925,14 +925,14 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
     TrackFragmentHeaderBoxPtr  pTfhdBox;
     TrackRunBoxPtr             pTrunBox;
 
-    pMoovBox = getContainBox("moov");
+    pMoovBox = getSubBox("moov");
     if (pMoovBox == nullptr)
     {
         MP4_ERR("Get moov fail\n");
         return -1;
     }
 
-    pTrakBoxes = pMoovBox->getContainBoxes("trak");
+    pTrakBoxes = pMoovBox->getSubBoxes("trak");
     if (pTrakBoxes.size() == 0)
     {
         MP4_ERR("Get trex fail\n");
@@ -944,21 +944,21 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
         return -1;
     }
 
-    pMdhdBox = pTrakBoxes[trackIdx]->getContainBoxRecursive<MediaHeaderBox>("mdhd", 2);
+    pMdhdBox = pTrakBoxes[trackIdx]->getSubBoxRecursive<MediaHeaderBox>("mdhd", 2);
     if (pMdhdBox == nullptr)
     {
         MP4_ERR("Get mdhd fail\n");
         return -1;
     }
 
-    pMvexBox = getContainBoxRecursive("mvex", 2);
+    pMvexBox = getSubBoxRecursive("mvex", 2);
     if (pMvexBox == nullptr)
     {
         MP4_ERR("Get mvex fail\n");
         return -1;
     }
 
-    pTrexBoxes = pMvexBox->getContainBoxes<TrackExtendsBox>("trex");
+    pTrexBoxes = pMvexBox->getSubBoxes<TrackExtendsBox>("trex");
     if (pTrexBoxes.size() == 0)
     {
         MP4_ERR("Get trex fail\n");
@@ -970,7 +970,7 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
         return -1;
     }
 
-    pMoofBoxes = getContainBoxes("moof");
+    pMoofBoxes = getSubBoxes("moof");
     if (pMoofBoxes.size() == 0)
     {
         MP4_ERR("Get moof fail\n");
@@ -983,7 +983,7 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
 
     for (uint64_t moofIdx = 0, moofCount = pMoofBoxes.size(); moofIdx < moofCount; ++moofIdx)
     {
-        pTrafBoxes = pMoofBoxes[moofIdx]->getContainBoxes("traf");
+        pTrafBoxes = pMoofBoxes[moofIdx]->getSubBoxes("traf");
         if (pTrafBoxes.size() == 0)
         {
             MP4_ERR("Get traf fail\n");
@@ -995,14 +995,14 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
             return -1;
         }
 
-        pTfhdBox = pTrafBoxes[trackIdx]->getContainBox<TrackFragmentHeaderBox>("tfhd");
+        pTfhdBox = pTrafBoxes[trackIdx]->getSubBox<TrackFragmentHeaderBox>("tfhd");
         if (pTfhdBox == nullptr)
         {
             MP4_ERR("Get tfhd fail\n");
             return -1;
         }
 
-        pTrunBox = pTrafBoxes[trackIdx]->getContainBox<TrackRunBox>("trun");
+        pTrunBox = pTrafBoxes[trackIdx]->getSubBox<TrackRunBox>("trun");
         if (pTrunBox == nullptr)
         {
             MP4_ERR("Get trun fail\n");
@@ -1091,10 +1091,10 @@ int Mp4MediaInfo::getInfoFromTrack(Mp4BoxPtr trakBox, TrackInfoPtr track)
         return -1;
     }
 
-    SampleDescriptionBoxPtr stsd = pTrakBox->getContainBoxRecursive<SampleDescriptionBox>("stsd");
+    SampleDescriptionBoxPtr stsd = pTrakBox->getSubBoxRecursive<SampleDescriptionBox>("stsd");
     MovieHeaderBoxPtr       mvhd =
-        pTrakBox->getUpperBox() == nullptr ? nullptr : pTrakBox->getUpperBox()->getContainBox<MovieHeaderBox>("mvhd");
-    TrackHeaderBoxPtr tkhd = pTrakBox->getContainBoxRecursive<TrackHeaderBox>("tkhd");
+        pTrakBox->getUpperBox() == nullptr ? nullptr : pTrakBox->getUpperBox()->getSubBox<MovieHeaderBox>("mvhd");
+    TrackHeaderBoxPtr tkhd = pTrakBox->getSubBoxRecursive<TrackHeaderBox>("tkhd");
     if (stsd == nullptr || tkhd == nullptr)
     {
         MP4_ERR("stsd/tkhd not found %p %p\n", stsd.get(), tkhd.get());
@@ -1186,7 +1186,7 @@ int Mp4VideoInfo::getInfoFromTrack(Mp4BoxPtr trakBox, TrackInfoPtr track)
     }
     mediaType = MP4_MEDIA_TYPE_VIDEO;
 
-    TrackHeaderBoxPtr tkhd = pTrakBox->getContainBoxRecursive<TrackHeaderBox>("tkhd");
+    TrackHeaderBoxPtr tkhd = pTrakBox->getSubBoxRecursive<TrackHeaderBox>("tkhd");
     if (tkhd == nullptr)
     {
         MP4_ERR("tkhd not found\n");
@@ -1203,7 +1203,7 @@ int Mp4VideoInfo::getInfoFromTrack(Mp4BoxPtr trakBox, TrackInfoPtr track)
     MP4_INFO("codec_type = %d\n", mp4GetCodecType(codecCode));
     if (mp4GetCodecType(codecCode) == MP4_CODEC_H264)
     {
-        AVCConfigurationBoxPtr avcc = pTrakBox->getContainBoxRecursive<AVCConfigurationBox>("avcC");
+        AVCConfigurationBoxPtr avcc = pTrakBox->getSubBoxRecursive<AVCConfigurationBox>("avcC");
         if (avcc != nullptr)
         {
             profile       = avcc->AVCConfig.avcProfileIndication;
@@ -1213,7 +1213,7 @@ int Mp4VideoInfo::getInfoFromTrack(Mp4BoxPtr trakBox, TrackInfoPtr track)
     }
     else if (mp4GetCodecType(codecCode) == MP4_CODEC_HEVC)
     {
-        HEVCConfigurationBoxPtr hvcc = pTrakBox->getContainBoxRecursive<HEVCConfigurationBox>("hvcC");
+        HEVCConfigurationBoxPtr hvcc = pTrakBox->getSubBoxRecursive<HEVCConfigurationBox>("hvcC");
         if (hvcc != nullptr)
         {
             profile       = hvcc->HEVCConfig.generalProfileIdc;
@@ -1286,14 +1286,14 @@ int Mp4AudioInfo::getInfoFromTrack(Mp4BoxPtr trakBox, TrackInfoPtr track)
 
     mediaType = MP4_MEDIA_TYPE_AUDIO;
 
-    CommonBoxPtr stsd = pTrakBox->getContainBoxRecursive("stsd");
+    CommonBoxPtr stsd = pTrakBox->getSubBoxRecursive("stsd");
     if (stsd == nullptr)
     {
         MP4_ERR("stsd/ not found\n");
         return -1;
     }
 
-    MP4AudioSampleEntryPtr mp4a = stsd->getContainBox<MP4AudioSampleEntry>("mp4a");
+    MP4AudioSampleEntryPtr mp4a = stsd->getSubBox<MP4AudioSampleEntry>("mp4a");
     if (mp4a == nullptr)
         return -1;
     channels        = mp4a->channelCount;

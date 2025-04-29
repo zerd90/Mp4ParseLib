@@ -2,6 +2,7 @@
 #define _MP4_BOX_DATA_TABLE_H_
 
 #include "Mp4BoxDataTypes.h"
+#include <functional>
 
 class Mp4BoxDataTable : public Mp4BoxDataBase
 {
@@ -9,8 +10,6 @@ public:
     Mp4BoxDataTable() : Mp4BoxDataBase(MP4_BOX_DATA_TYPE_TABLE) {}
 
     virtual std::shared_ptr<Mp4BoxData> tableAddColumn(const std::string &columnName) override;
-
-    virtual std::shared_ptr<Mp4BoxData> tableAddRow(std::shared_ptr<Mp4BoxData> row) override;
 
     virtual size_t                            tableGetColumnCount() const override;
     virtual std::string                       tableGetColumnName(uint64_t idx) const override;
@@ -21,14 +20,24 @@ public:
     virtual std::string toString() const override;
     virtual std::string toHexString() const override;
 
-    uint64_t size() const override;
+    uint64_t     size() const override;
+    virtual void tableSetCallbacks(
+        const std::function<uint64_t(const void *)>                                              &getRowCountCallback,
+        const std::function<std::shared_ptr<const Mp4BoxData>(const void *, uint64_t)>           &getRowCallback,
+        const std::function<std::shared_ptr<const Mp4BoxData>(const void *, uint64_t, uint64_t)> &getCellCallback,
+        const void                                                                               *userData) override;
 
 private:
     std::string toStringInternal(bool bHex) const;
 
 private:
-    std::vector<std::string>                 mColumnsName;
-    std::vector<std::shared_ptr<Mp4BoxData>> mTableItems; // vector of Mp4BoxDataArray
+    std::vector<std::string> mColumnsName;
+
+    std::function<uint64_t(const void *)> mGetRowCountCallback;
+
+    std::function<std::shared_ptr<const Mp4BoxData>(const void *, uint64_t, uint64_t)> mGetCellCallback;
+    std::function<std::shared_ptr<const Mp4BoxData>(const void *, uint64_t)>           mGetRowCallback;
+    const void                                                                        *mCallbackData = nullptr;
 };
 
 #endif // _MP4_BOX_DATA_TABLE_H_
