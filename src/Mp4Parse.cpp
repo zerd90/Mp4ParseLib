@@ -1,6 +1,7 @@
 
 #include <stdarg.h>
 #include <sstream>
+#include <string.h>
 
 #include "Mp4Parse.h"
 #include "Mp4ParseInternal.h"

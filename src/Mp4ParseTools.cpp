@@ -1,4 +1,6 @@
 #include <time.h>
+#include <string.h>
+#include <inttypes.h>
 #include <string>
 #include <filesystem>
 #include "Mp4ParseTools.h"
@@ -104,17 +106,17 @@ int BinaryFileReader::checkBuffer(uint64_t readPos, uint64_t readSize)
         mBufferContainSize = MIN(fileSize - readPos, mBufferSize);
         if (fseek64(mFileHandle, readPos, SEEK_SET) < 0)
         {
-            MP4_ERR("seek to %#llx fail %s\n", readPos, strerror(errno));
+            MP4_ERR("seek to 0x%" PRIx64 " fail %s\n", readPos, strerror(errno));
             return -1;
         }
         if (fread(mReadBuffer.get(), 1, mBufferContainSize, mFileHandle) != mBufferContainSize)
         {
-            MP4_ERR("read %s fail(%s), pos %llu, size %llu\n", mFileFullPath.c_str(), strerror(errno), readPos,
+            MP4_ERR("read %s fail(%s), pos 0x%" PRIx64 ", size 0x%" PRIx64 "\n", mFileFullPath.c_str(), strerror(errno), readPos,
                     mBufferContainSize);
             return -1;
         }
         mBufferStartOffset = readPos;
-        MP4_DBG("update buffer, pos=%#llx, size=%llu\n", mBufferStartOffset, mBufferContainSize);
+        MP4_DBG("update buffer, pos=0x%" PRIx64 ", size=0x%" PRIx64 "\n", mBufferStartOffset, mBufferContainSize);
     }
     return 0;
 }
@@ -171,7 +173,7 @@ int BinaryFileReader::open(std::string &newFileName)
         size_t readSize    = fread(mReadBuffer.get(), 1, mBufferContainSize, mFileHandle);
         if (readSize != mBufferContainSize)
         {
-            MP4_ERR("read err %zu != %llu\n", readSize, mBufferContainSize);
+            MP4_ERR("read err %zu != 0x%" PRIx64 "\n", readSize, mBufferContainSize);
         }
         mBufferStartOffset = 0;
     }

@@ -52,7 +52,7 @@ shared_ptr<ESDescriptor> getDescriptor(BinaryFileReader &reader, uint64_t last)
     ret = reader.read(&tag, 1);
     if (0 == ret)
     {
-        MP4_ERR("read err %llu\n", ret);
+        MP4_ERR("read err %" PRIu64 "\n", ret);
         return curDesc;
     }
 
@@ -85,7 +85,7 @@ shared_ptr<ESDescriptor> getDescriptor(BinaryFileReader &reader, uint64_t last)
 
     curDesc->getLength(reader);
 
-    MP4_INFO("get descriptor %s(code %#x) pos %#llx(%llu), size %#llx(%llu)\n",
+    MP4_INFO("get descriptor %s(code %#x) pos %#" PRIx64 "(%" PRIu64 "), size %#" PRIx64 "(%" PRIu64 ")\n",
              getDescriptorString((ES_DESCRIPTOR_TAG_E)tag).c_str(), tag, curDesc->descPos, curDesc->descPos,
              curDesc->descSize, curDesc->descSize);
 

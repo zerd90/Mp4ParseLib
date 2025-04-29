@@ -1,4 +1,5 @@
 
+#include <inttypes.h>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -95,7 +96,7 @@ int main(int argc, char **argv)
         }
         audioFile.open(audioOutFilePath, ios_base::out | ios_base::binary | ios_base::trunc);
     }
-    unsigned long long wrSize = 0;
+    uint64_t wrSize = 0;
     for (uint32_t sampleIdx = 0; sampleIdx < tracksInfo[videoTrackIdx]->mediaInfo->samplesInfo.size(); sampleIdx++)
     {
         Mp4VideoFrame frame;
@@ -109,7 +110,7 @@ int main(int argc, char **argv)
             break;
         }
         wrSize += frame.dataSize;
-        fprintf(stderr, "\rWriting %llu...", wrSize);
+        fprintf(stderr, "\rWriting %" PRIu64 "...", wrSize);
     }
 
     if (audioTrackIdx >= 0 && audioFile.is_open())

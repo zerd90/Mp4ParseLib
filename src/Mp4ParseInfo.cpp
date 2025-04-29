@@ -2,6 +2,7 @@
 #include <math.h>
 #include <iostream>
 #include <sstream>
+#include <string.h>
 
 #include "Mp4BoxTypes.h"
 #include "Mp4SampleEntryTypes.h"
@@ -382,16 +383,16 @@ H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t 
                     type = getH264FrameType(data);
                     if (type == H26X_FRAME_Unknown)
                     {
-                        MP4_ERR("H264 frame %llu type unknown\n", sampleIdx);
+                        MP4_ERR("H264 frame %" PRIu64 " type unknown\n", sampleIdx);
                     }
                     if (H26X_FRAME_I == type)
                     {
-                        MP4_ERR("H264 frame %llu type I, not matching Nalu Type %d\n", sampleIdx, naluType);
+                        MP4_ERR("H264 frame %" PRIu64 " type I, not matching Nalu Type %d\n", sampleIdx, naluType);
                     }
                     curSample->frameType = type;
                     if (H26X_FRAME_I == curSample->frameType && 0 == curSample->isKeyFrame)
                     {
-                        MP4_ERR("H264 frame %llu is I frame, but not marked as key frame by stts\n", sampleIdx);
+                        MP4_ERR("H264 frame %" PRIu64 " is I frame, but not marked as key frame by stts\n", sampleIdx);
                         curSample->isKeyFrame = 2;
                     }
                 }
@@ -426,15 +427,15 @@ H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t 
                     H26X_FRAME_TYPE_E type;
                     type = getH265FrameType(naluType, data);
                     if (type == H26X_FRAME_Unknown)
-                        MP4_ERR("H265 frame %llu type unknown\n", sampleIdx);
+                        MP4_ERR("H265 frame %" PRIu64 " type unknown\n", sampleIdx);
 
                     if (H26X_FRAME_I == type)
-                        MP4_ERR("H265 frame %llu type I, not matching Nalu Type %d\n", sampleIdx, naluType);
+                        MP4_ERR("H265 frame %" PRIu64 " type I, not matching Nalu Type %d\n", sampleIdx, naluType);
 
                     curSample->frameType = type;
                     if (H26X_FRAME_I == curSample->frameType && 0 == curSample->isKeyFrame)
                     {
-                        MP4_ERR("H265 frame %llu is I frame, but not marked as key frame by stts\n", sampleIdx);
+                        MP4_ERR("H265 frame %" PRIu64 " is I frame, but not marked as key frame by stts\n", sampleIdx);
                         curSample->isKeyFrame = 2;
                     }
                 }
@@ -603,7 +604,7 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
         auto pTrakBoxes = pMoov->getSubBoxes("trak");
         if (trackIdx >= pTrakBoxes.size())
         {
-            MP4_ERR("trak Index Too Big %llu %zu\n", trackIdx, pTrakBoxes.size());
+            MP4_ERR("trak Index Too Big %" PRIu64 " %zu\n", trackIdx, pTrakBoxes.size());
             break;
         }
 
@@ -625,7 +626,7 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
 
     if (stbl == nullptr)
     {
-        MP4_ERR("%llu stbl not parsed\n", trackIdx);
+        MP4_ERR("%" PRIu64 " stbl not parsed\n", trackIdx);
         return -1;
     }
 
@@ -686,7 +687,6 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
 
     uint64_t chunkStart = 0;
 
-    auto start = std::chrono::steady_clock::now();
     for (unsigned int chunkIdx = 0; chunkIdx < chunkCount; ++chunkIdx)
     {
         Mp4ChunkItem curChunk;
@@ -729,7 +729,6 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
     if (stss != nullptr)
         nextIframeIdx = stss->getEntry<stssItem>(stssIdx)->sampleNumber - 1;
 
-    start = std::chrono::steady_clock::now();
     for (unsigned int i = 0; i < sampleCount; ++i)
     {
         if (i >= trackMediaInfo->chunksInfo[curChunkIdx].sampleStartIdx
@@ -940,7 +939,7 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
     }
     if (trackIdx >= pTrakBoxes.size())
     {
-        MP4_ERR("Num of trex err %llu %zu\n", trackIdx, pTrakBoxes.size());
+        MP4_ERR("Num of trex err %" PRIu64 " %zu\n", trackIdx, pTrakBoxes.size());
         return -1;
     }
 
@@ -966,7 +965,7 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
     }
     if (trackIdx >= pTrexBoxes.size())
     {
-        MP4_ERR("Num of trex err %llu %zu\n", trackIdx, pTrexBoxes.size());
+        MP4_ERR("Num of trex err %" PRIu64 " %zu\n", trackIdx, pTrexBoxes.size());
         return -1;
     }
 
@@ -991,7 +990,7 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
         }
         if (trackIdx >= pTrafBoxes.size())
         {
-            MP4_ERR("Num of traf err %llu %zu\n", trackIdx, pTrafBoxes.size());
+            MP4_ERR("Num of traf err %" PRIu64 " %zu\n", trackIdx, pTrafBoxes.size());
             return -1;
         }
 
