@@ -1,45 +1,45 @@
 #ifndef MP4_PARSE_INTERNAL_H
 #define MP4_PARSE_INTERNAL_H
 
+#include <map>
+#include <queue>
+#include <inttypes.h>
 #include "Mp4SampleTableTypes.h"
 #include "Mp4Types.h"
 #include "Mp4BoxTypes.h"
 #include "Mp4Parse.h"
-#include <map>
-#include <queue>
-#include <chrono>
 
 #define set_zero_ar(ar) memset(ar, 0, sizeof(ar))
 #define set_zero_st(st) memset(&st, 0, sizeof(st))
 #define ARRAY_SIZE(ar)  (sizeof(ar) / sizeof(*(ar)))
 
-#define BOX_PARSE_BEGIN()                                                                         \
-    mBoxOffset    = boxPosition;                                                                  \
-    mBoxSize      = boxSize;                                                                      \
-    mBodyPos      = reader.getCursorPos();                                                        \
-    mBodySize     = boxBodySize;                                                                  \
-    uint64_t last = reader.getCursorPos() + boxBodySize;                                          \
-    if (last > reader.getFileSize())                                                              \
-    {                                                                                             \
-        MP4_ERR("size err %llu + %llu = %llu > %llu\n", reader.getCursorPos(), boxBodySize, last, \
-                reader.getFileSize());                                                            \
-        return -1;                                                                                \
-    }                                                                                             \
-    if (mIsFullbox)                                                                               \
-    {                                                                                             \
-        CHECK_RET(read_fullbox_version_flags(reader, &mFullboxVersion, &mFullboxFlags));          \
+#define BOX_PARSE_BEGIN()                                                                                  \
+    mBoxOffset    = boxPosition;                                                                           \
+    mBoxSize      = boxSize;                                                                               \
+    mBodyPos      = reader.getCursorPos();                                                                 \
+    mBodySize     = boxBodySize;                                                                           \
+    uint64_t last = reader.getCursorPos() + boxBodySize;                                                   \
+    if (last > reader.getFileSize())                                                                       \
+    {                                                                                                      \
+        MP4_ERR("size err %" PRIu64 " + %" PRIu64 " = %" PRIu64 " > %" PRIu64 "\n", reader.getCursorPos(), \
+                boxBodySize, last, reader.getFileSize());                                                  \
+        return -1;                                                                                         \
+    }                                                                                                      \
+    if (mIsFullbox)                                                                                        \
+    {                                                                                                      \
+        CHECK_RET(read_fullbox_version_flags(reader, &mFullboxVersion, &mFullboxFlags));                   \
     }
 
 #define BOX_PARSE_END()                                                                                                \
     if (reader.getCursorPos() < last)                                                                                  \
     {                                                                                                                  \
-        MP4_DBG("%s not end, remain %llu Bytes from %#06llx\n", getBoxTypeStr().c_str(), last - reader.getCursorPos(), \
+        MP4_DBG("%s not end, remain %" PRIu64 " Bytes from %#06" PRIx64 "\n", getBoxTypeStr().c_str(), last - reader.getCursorPos(), \
                 reader.getCursorPos());                                                                                \
         return 1;                                                                                                      \
     }                                                                                                                  \
     else if (reader.getCursorPos() > last)                                                                             \
     {                                                                                                                  \
-        MP4_ERR("parse err %llu > %llu\n", reader.getCursorPos(), last);                                               \
+        MP4_ERR("parse err %" PRIu64 " > %" PRIu64 "\n", reader.getCursorPos(), last);                                               \
         reader.setCursor(last);                                                                                        \
         return -1;                                                                                                     \
     }
@@ -73,10 +73,6 @@ int          read_fullbox_version_flags(BinaryFileReader &reader, uint8_t *versi
 CommonBoxPtr parseBox(BinaryFileReader &reader, bool *parse_err);
 uint32_t     getCompatibleBoxType(uint32_t type);
 std::string  getProfileString(unsigned int profile_idc);
-
-bool isSameBoxType(uint32_t type1, uint32_t type2);
-bool hasSampleTable(uint32_t boxType);
-bool hasSampleTable(std::string boxType);
 
 class MP4ParserImpl : public Mp4Parser, public CommonBox, public std::enable_shared_from_this<MP4ParserImpl>
 {

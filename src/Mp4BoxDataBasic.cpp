@@ -1,4 +1,5 @@
 
+#include <inttypes.h>
 #include "Mp4BoxDataBasic.h"
 
 using namespace std;
@@ -87,12 +88,12 @@ string Mp4BoxDataBasic::toString() const
     {
         case MP4_BOX_DATA_TYPE_SINT:
             if (bhex)
-                RETURN_STR("%#llx", objectValue.s64);
+                RETURN_STR("0x%" PRIx64, objectValue.s64);
             else
                 return std::to_string(objectValue.s64);
         case MP4_BOX_DATA_TYPE_UINT:
             if (bhex)
-                RETURN_STR("%#llx", objectValue.u64);
+                RETURN_STR("0x%" PRIx64, objectValue.u64);
             else
                 return std::to_string(objectValue.u64);
         case MP4_BOX_DATA_TYPE_REAL:
@@ -109,9 +110,9 @@ std::string Mp4BoxDataBasic::toHexString() const
     switch (mObjectType)
     {
         case MP4_BOX_DATA_TYPE_SINT:
-            RETURN_STR("%#llx", objectValue.s64);
+            RETURN_STR("0x%" PRIx64, objectValue.s64);
         case MP4_BOX_DATA_TYPE_UINT:
-            RETURN_STR("%#llx", objectValue.u64);
+            RETURN_STR("0x%" PRIx64, objectValue.u64);
         case MP4_BOX_DATA_TYPE_REAL:
             return std::to_string(objectValue.f64);
         case MP4_BOX_DATA_TYPE_STR:

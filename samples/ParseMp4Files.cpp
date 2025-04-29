@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <fcntl.h>
+#include <string.h>
 
 #include <memory>
 #include <vector>

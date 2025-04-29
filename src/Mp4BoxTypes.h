@@ -9,6 +9,10 @@
 #include "Mp4Types.h"
 #include "Mp4Parse.h"
 
+bool isSameBoxType(uint32_t type1, uint32_t type2);
+bool hasSampleTable(uint32_t boxType);
+bool hasSampleTable(const std::string &boxType);
+
 struct CommonBox : public Mp4Box
 {
     CommonBox() = delete;

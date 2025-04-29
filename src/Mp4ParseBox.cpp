@@ -1,6 +1,7 @@
 
 #include <iterator>
 #include <math.h>
+#include <string.h>
 
 #include "Mp4Parse.h"
 #include "Mp4BoxTypes.h"
@@ -222,7 +223,7 @@ bool hasSampleTable(uint32_t boxType)
     }
 }
 
-bool hasSampleTable(std::string boxType)
+bool hasSampleTable(const std::string &boxType)
 {
     return hasSampleTable(MP4_BOX_MAKE_TYPE(boxType.c_str()));
 }
@@ -233,7 +234,7 @@ int get_type_size(BinaryFileReader &reader, uint32_t &type, uint64_t &boxPos, ui
     char     boxType[4] = {0};
     if (reader.getCursorPos() + BOX_HEADER_LENGTH > reader.getFileSize())
     {
-        MP4_ERR("size err %llu + BOX_HEADER_LENGTH > %llu\n", reader.getCursorPos(), reader.getFileSize());
+        MP4_ERR("size err %" PRIu64 " + BOX_HEADER_LENGTH > %" PRIu64 "\n", reader.getCursorPos(), reader.getFileSize());
         return -1;
     }
 
@@ -270,12 +271,12 @@ int get_type_size(BinaryFileReader &reader, uint32_t &type, uint64_t &boxPos, ui
         boxSize  = bswap_64(boxSize);
         bodySize = boxSize - BOX_EXTENDED_HEADER_LENGTH;
         size_err = reader.getCursorPos() + bodySize > reader.getFileSize();
-        MP4_INFO("box %s using large size %llu\n", boxType2Str(type).c_str(), boxSize);
+        MP4_INFO("box %s using large size %" PRIu64 "\n", boxType2Str(type).c_str(), boxSize);
     }
 
     if (size_err)
     {
-        MP4_ERR("type %s, size err %llu + %llu > %llu\n", boxType2Str(type).c_str(), reader.getCursorPos(), boxSize,
+        MP4_ERR("type %s, size err %" PRIu64 " + %" PRIu64 " > %" PRIu64 "\n", boxType2Str(type).c_str(), reader.getCursorPos(), boxSize,
                 reader.getFileSize());
     }
     return 0;
@@ -343,7 +344,7 @@ int FileTypeBox::parse(BinaryFileReader &reader, uint64_t boxPosition, uint64_t 
 
     if (mBodySize < 8 || mBodySize % 4 != 0)
     {
-        MP4_ERR("ftyp size err %llu\n", mBodySize);
+        MP4_ERR("ftyp size err %" PRIu64 "\n", mBodySize);
         reader.setCursor(last);
         return -1;
     }
@@ -1100,7 +1101,7 @@ CommonBoxPtr MP4ParserImpl::parseBox(BinaryFileReader &reader, CommonBoxPtr pare
         return nullptr;
     }
 
-    MP4_INFO("get box %s offset %#llx(%llu), size %#llx(%llu)\n", boxType2Str(type).c_str(), boxPos, boxPos, boxSize,
+    MP4_INFO("get box %s offset %#" PRIx64 "(%" PRIu64 "), size %#" PRIx64 "(%" PRIu64 ")\n", boxType2Str(type).c_str(), boxPos, boxPos, boxSize,
              boxSize);
 
     CommonBoxPtr curBox;
@@ -1282,7 +1283,7 @@ CommonBoxPtr MP4ParserImpl::parseBox(BinaryFileReader &reader, CommonBoxPtr pare
     }
     if (reader.getCursorPos() < curBox->mBodyPos + curBox->mBodySize)
     {
-        MP4_INFO("parse sub boxes for %s from %#llx\n", boxType2Str(curBox->mBoxType).c_str(), reader.getCursorPos());
+        MP4_INFO("parse sub boxes for %s from %#" PRIx64 "\n", boxType2Str(curBox->mBoxType).c_str(), reader.getCursorPos());
     }
     while (reader.getCursorPos() < curBox->mBodyPos + curBox->mBodySize)
     {
