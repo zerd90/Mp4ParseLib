@@ -4,7 +4,7 @@
 #include "Mp4BoxDataTypes.h"
 
 template <typename T, typename U>
-static inline constexpr bool decayEquiv = std::is_same<std::decay_t<T>, std::decay_t<U>>::value;
+static inline constexpr bool decayEquiv = std::is_same_v<std::decay_t<T>, std::decay_t<U>>;
 
 #define IS_SIGNED(type)                                                                                          \
     (decayEquiv<signed char, type> || decayEquiv<short, type> || decayEquiv<int, type> || decayEquiv<long, type> \
