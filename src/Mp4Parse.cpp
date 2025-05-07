@@ -169,9 +169,6 @@ int MP4ParserImpl::parse(string filepath)
             break;
 
         mContainBoxes.push_back(curBox);
-
-        if (parseErr)
-            break;
     }
 
     mMp4Type = MP4_TYPE_ISO;

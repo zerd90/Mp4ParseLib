@@ -1061,7 +1061,10 @@ int UuidBox::parse(BinaryFileReader &reader, uint64_t boxPosition, uint64_t boxS
     BOX_PARSE_BEGIN();
 
     if (boxBodySize < MP4_UUID_LEN)
+    {
+        MP4_ERR("uuid size err %" PRIu64 "\n", boxBodySize);
         return 0;
+    }
 
     reader.read(uuid, MP4_UUID_LEN);
 

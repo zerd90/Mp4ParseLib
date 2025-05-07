@@ -52,19 +52,21 @@ shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData(T data)
     return newObject(data);
 }
 
-template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<int8_t>(int8_t);
-template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<int16_t>(int16_t);
-template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<int32_t>(int32_t);
-template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<int64_t>(int64_t);
-template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<uint8_t>(uint8_t);
-template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<uint16_t>(uint16_t);
-template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<uint32_t>(uint32_t);
-template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<uint64_t>(uint64_t);
+template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<char>(char);
+template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<signed char>(signed char);
+template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<unsigned char>(unsigned char);
+template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<short>(short);
+template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<unsigned short>(unsigned short);
+template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<int>(int);
+template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<unsigned int>(unsigned int);
+template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<long>(long);
+template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<unsigned long>(unsigned long);
+template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<long long>(long long);
+template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<unsigned long long>(unsigned long long);
 template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<float>(float);
 template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<double>(double);
 template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<std::string>(std::string);
 template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<const char *>(const char *);
-template shared_ptr<Mp4BoxData> Mp4BoxData::createBasicData<char>(char);
 
 shared_ptr<Mp4BoxData> Mp4BoxData::createArrayData()
 {
