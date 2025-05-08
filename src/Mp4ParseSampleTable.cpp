@@ -38,11 +38,14 @@ std::shared_ptr<Mp4BoxData> SampleTableBox::getData(std::shared_ptr<Mp4BoxData> 
         item = Mp4BoxData::createKeyValuePairsData();
 
     item->kvAddPair(tableName + " Count", entryCount);
+
+    // check if there's no entry table, for example, stsz could only use default size but no entry
+    if (entries.empty())
+        return item;
+
     std::shared_ptr<Mp4BoxData> entryTable = item->kvAddKey(tableName + "s", MP4_BOX_DATA_TYPE_TABLE);
-    if (entries.size() > 0)
-    {
-        entries[0]->setColumnsName(entryTable);
-    }
+
+    entries[0]->setColumnsName(entryTable);
     entryTable->tableSetCallbacks(
         [](const void *userData)
         {
