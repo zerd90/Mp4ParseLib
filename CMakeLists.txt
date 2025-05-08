@@ -35,7 +35,7 @@ endif()
 # 头文件路径
 include_directories(
 	${INCLUDE_DIRECTORIES}
-	"include"
+	${PROJECT_SOURCE_DIR}/include
 )
 
 add_library(${PROJECT_NAME} ${SRC_LIST})
