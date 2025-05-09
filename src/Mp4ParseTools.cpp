@@ -1,3 +1,5 @@
+#include <sstream>
+#include <iostream>
 #include <time.h>
 #include <string.h>
 #include <inttypes.h>
@@ -85,6 +87,13 @@ void setMp4ParseLogCallback(std::function<void(MP4_LOG_LEVEL_E, const char *)> l
     {
         gLogCallback = logCallback;
     }
+}
+
+string hexString(uint32_t val)
+{
+    std::stringstream ss;
+    ss << "0x" << std::hex << val;
+    return ss.str();
 }
 
 BinaryFileReader::BinaryFileReader()
