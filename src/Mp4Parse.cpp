@@ -387,6 +387,7 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
         return -1;
     }
 
+    // TODO：support mutiple smaple entrys in stsd
     switch (getCompatibleBoxType(stsd->mContainBoxes[0]->mBoxType))
     {
         case MP4_BOX_MAKE_TYPE("hvc1"):

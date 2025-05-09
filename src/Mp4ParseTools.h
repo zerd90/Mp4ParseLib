@@ -91,6 +91,7 @@ std::string data2hex(const BinaryData &data, int truncateLen = 16);
 std::string data2hex(const void *buffer, uint64_t bufferSize, int truncateLen = 16);
 
 extern std::function<void(MP4_LOG_LEVEL_E, const char *)> gLogCallback;
+std::string hexString(uint32_t val);
 
 struct BinaryFileReader
 {

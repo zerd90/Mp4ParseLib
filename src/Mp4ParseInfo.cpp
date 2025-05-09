@@ -830,24 +830,13 @@ uint32_t MP4ParserImpl::fragmentGetSampleFlags(TrackExtendsBoxPtr pTrexBox, Trac
         return 0;
 
     if (pTrunBox->mFullboxFlags & MP4_TRUN_FLAG_SAMPLE_FLAGS_PRESENT)
-    {
         return pTrunBox->getEntry<trunItem>(sampleIdx)->flags;
-    }
     else if (pTrunBox->mFullboxFlags & MP4_TRUN_FLAG_FIRST_SAMPLE_FLAGS_PRESENT && 0 == sampleIdx)
-    {
         return pTrunBox->firstSampleFlags;
-    }
+    else if (pTfhdBox->mFullboxFlags & MP4_TFHD_FLAG_DEFAULT_SAMPLE_FLAGS_PRESENT)
+        return pTfhdBox->defaultSampleFlags;
     else
-    {
-        if (pTfhdBox->mFullboxFlags & MP4_TFHD_FLAG_DEFAULT_SAMPLE_FLAGS_PRESENT)
-        {
-            return pTfhdBox->defaultSampleFlags;
-        }
-        else
-        {
-            return pTrexBox->defaultSampleFlags;
-        }
-    }
+        return pTrexBox->defaultSampleFlags;
 }
 #define FRAG_IS_IFRAME(sample_flags) (((sample_flags) & FRAG_SAMPLE_FLAG_IS_NON_SYNC) == 0x00000000)
 
@@ -861,16 +850,13 @@ uint32_t MP4ParserImpl::fragmentGetSampleSize(TrackExtendsBoxPtr pTrexBox, Track
     {
         return pTrunBox->getEntry<trunItem>(sampleIdx)->size;
     }
+    else if (pTfhdBox->mFullboxFlags & MP4_TFHD_FLAG_DEFAULT_SAMPLE_SIZE_PRESENT)
+    {
+        return pTfhdBox->defaultSampleSize;
+    }
     else
     {
-        if (pTfhdBox->mFullboxFlags & MP4_TFHD_FLAG_DEFAULT_SAMPLE_SIZE_PRESENT)
-        {
-            return pTfhdBox->defaultSampleSize;
-        }
-        else
-        {
-            return pTrexBox->defaultSampleSize;
-        }
+        return pTrexBox->defaultSampleSize;
     }
 }
 
@@ -884,16 +870,13 @@ uint32_t MP4ParserImpl::fragmentGetSampleDuration(TrackExtendsBoxPtr pTrexBox, T
     {
         return pTrunBox->getEntry<trunItem>(sampleIdx)->duration;
     }
+    else if (pTfhdBox->mFullboxFlags & MP4_TFHD_FLAG_DEFAULT_SAMPLE_DURATION_PRESENT)
+    {
+        return pTfhdBox->defaultSampleDuration;
+    }
     else
     {
-        if (pTfhdBox->mFullboxFlags & MP4_TFHD_FLAG_DEFAULT_SAMPLE_DURATION_PRESENT)
-        {
-            return pTfhdBox->defaultSampleDuration;
-        }
-        else
-        {
-            return pTrexBox->defaultSampleDuration;
-        }
+        return pTrexBox->defaultSampleDuration;
     }
 }
 

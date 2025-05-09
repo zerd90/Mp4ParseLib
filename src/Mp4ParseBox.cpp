@@ -1,4 +1,6 @@
 
+#include <ios>
+#include <sstream>
 #include <iterator>
 #include <math.h>
 #include <string.h>
@@ -513,14 +515,29 @@ int TrackHeaderBox::parse(BinaryFileReader &reader, uint64_t boxPosition, uint64
 
     return 0;
 }
+string tkhdFlagsString(uint32_t flags)
+{
+    string ret;
+    ret += hexString(flags);
+    if (flags & MP4_TKHD_FLAG_TRACK_ENABLED)
+        ret += ", Enabled";
+    if (flags & MP4_TKHD_FLAG_TRACK_IN_MOVIE)
+        ret += ", In Movie";
+    if (flags & MP4_TKHD_FLAG_TRACK_IN_PREVIEW)
+        ret += ", In Preview";
+    if (flags & MP4_TKHD_FLAG_TRACK_SIZE_IS_ASPECT_RATIO)
+        ret += ", Size Is Aspect Ratio";
 
+    return ret;
+}
 std::shared_ptr<Mp4BoxData> TrackHeaderBox::getData(std::shared_ptr<Mp4BoxData> src) const
 {
     std::shared_ptr<Mp4BoxData> item = src;
     if (nullptr == item)
         item = Mp4BoxData::createKeyValuePairsData();
 
-    item->kvAddPair("Creation Time", getTimeString(creationTime))
+    item->kvAddPair("Flags", tkhdFlagsString(mFullboxFlags))
+        ->kvAddPair("Creation Time", getTimeString(creationTime))
         ->kvAddPair("Modification Time", getTimeString(modificationTime))
         ->kvAddPair("Track ID", trackId)
         ->kvAddPair("Duration", duration)
@@ -889,12 +906,17 @@ std::shared_ptr<Mp4BoxData> TrackFragmentHeaderBox::getData(std::shared_ptr<Mp4B
     if (nullptr == item)
         item = Mp4BoxData::createKeyValuePairsData();
 
-    item->kvAddPair("Track Id", trackId)
-        ->kvAddPair("Base Data Offset", baseDataOffset)
-        ->kvAddPair("Sample Description Index", sampleDescIdx)
-        ->kvAddPair("Default Sample Duration", defaultSampleDuration)
-        ->kvAddPair("Default Sample Size", defaultSampleSize)
-        ->kvAddPair("Default Sample Flags", defaultSampleFlags);
+    item->kvAddPair("Track Id", trackId)->kvAddPair("Flags", hexString(mFullboxFlags));
+    if (mFullboxFlags & MP4_TFHD_FLAG_BASE_DATA_OFFSET_PRESENT)
+        item->kvAddPair("Base Data Offset", baseDataOffset);
+    if (mFullboxFlags & MP4_TFHD_FLAG_SAMPLE_DESCRIPTION_INDEX_PRESENT)
+        item->kvAddPair("Sample Description Index", sampleDescIdx);
+    if (mFullboxFlags & MP4_TFHD_FLAG_DEFAULT_SAMPLE_DURATION_PRESENT)
+        item->kvAddPair("Default Sample Duration", defaultSampleDuration);
+    if (mFullboxFlags & MP4_TFHD_FLAG_DEFAULT_SAMPLE_SIZE_PRESENT)
+        item->kvAddPair("Default Sample Size", defaultSampleSize);
+    if (mFullboxFlags & MP4_TFHD_FLAG_DEFAULT_SAMPLE_FLAGS_PRESENT)
+        item->kvAddPair("Default Sample Flags", hexString(defaultSampleFlags));
     return item;
 }
 

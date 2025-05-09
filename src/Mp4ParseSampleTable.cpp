@@ -1,3 +1,4 @@
+
 #include "Mp4ParseInternal.h"
 #include "Mp4SampleTableTypes.h"
 
@@ -422,6 +423,8 @@ int TrackRunBox::parse(BinaryFileReader &reader, uint64_t boxPosition, uint64_t 
     {
         auto trun_sample = std::make_shared<trunItem>();
 
+        trun_sample->boxFlags = mFullboxFlags;
+
         if (mFullboxFlags & MP4_TRUN_FLAG_SAMPLE_DURATION_PRESENT)
         {
             trun_sample->duration = reader.readU32(true);
@@ -459,7 +462,11 @@ std::shared_ptr<Mp4BoxData> TrackRunBox::getData(std::shared_ptr<Mp4BoxData> src
     if (nullptr == item)
         item = Mp4BoxData::createKeyValuePairsData();
 
-    item->kvAddPair("Data Offset", dataOffset)->kvAddPair("First Sample Flags", firstSampleFlags);
+    item->kvAddPair("Flags", hexString(mFullboxFlags));
+    if (mFullboxFlags & MP4_TRUN_FLAG_DATA_OFFSET_PRESENT)
+        item->kvAddPair("Data Offset", dataOffset);
+    if (mFullboxFlags & MP4_TRUN_FLAG_FIRST_SAMPLE_FLAGS_PRESENT)
+        item->kvAddPair("First Sample Flags", firstSampleFlags);
 
     SampleTableBox::getData(item);
 
