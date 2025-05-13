@@ -1403,7 +1403,7 @@ std::shared_ptr<Mp4BoxData> UuidBox::getData(std::shared_ptr<Mp4BoxData> src) co
         for (int i = 0; i < MP4_UUID_LEN; i++)
         {
             char buf[5] = {0};
-            sprintf(buf, "0x%02x", uuid[i]);
+            snprintf(buf, sizeof(buf), "0x%02x", uuid[i]);
             uuidString += buf;
             if (i < MP4_UUID_LEN - 1)
                 uuidString += " ";
