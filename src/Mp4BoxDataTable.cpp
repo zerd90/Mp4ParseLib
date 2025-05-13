@@ -5,7 +5,7 @@
 
 using namespace std;
 
-shared_ptr<const Mp4BoxData> Mp4BoxDataTable::tableGetRow(uint64_t idx) const
+shared_ptr<const Mp4BoxData> Mp4BoxDataTable::tableGetRow(size_t idx) const
 {
     if (mGetRowCallback != nullptr)
         return mGetRowCallback(mCallbackData, idx);
@@ -62,7 +62,7 @@ std::string Mp4BoxDataTable::toHexString() const
     return toStringInternal(true);
 }
 
-std::string Mp4BoxDataTable::tableGetColumnName(uint64_t idx) const
+std::string Mp4BoxDataTable::tableGetColumnName(size_t idx) const
 {
     return mColumnsName[MIN(idx, mColumnsName.size() - 1)];
 }

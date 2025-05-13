@@ -12,9 +12,9 @@ public:
     virtual std::shared_ptr<Mp4BoxData> tableAddColumn(const std::string &columnName) override;
 
     virtual size_t                            tableGetColumnCount() const override;
-    virtual std::string                       tableGetColumnName(uint64_t idx) const override;
+    virtual std::string                       tableGetColumnName(size_t idx) const override;
     virtual size_t                            tableGetRowCount() const override;
-    virtual std::shared_ptr<const Mp4BoxData> tableGetRow(uint64_t idx) const override;
+    virtual std::shared_ptr<const Mp4BoxData> tableGetRow(size_t idx) const override;
     std::shared_ptr<const Mp4BoxData>         operator[](uint64_t idx) const override;
 
     virtual std::string toString() const override;
