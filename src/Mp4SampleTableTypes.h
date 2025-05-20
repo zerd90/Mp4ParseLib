@@ -550,42 +550,79 @@ using EditListBoxPtr = std::shared_ptr<EditListBox>;
 
 struct trunItem : public BasicSampleItem
 {
+    uint32_t boxFlags     = 0;
+    // if (mFullboxFlags & MP4_TRUN_FLAG_SAMPLE_DURATION_PRESENT)
     uint32_t duration     = 0;
+    // if (mFullboxFlags & MP4_TRUN_FLAG_SAMPLE_SIZE_PRESENT)
     uint32_t size         = 0;
+    // if (mFullboxFlags & MP4_TRUN_FLAG_SAMPLE_FLAGS_PRESENT)
     uint32_t flags        = 0;
+    // if (mFullboxFlags & MP4_TRUN_FLAG_SAMPLE_COMPOSITION_TIME_OFFSETS_PRESENT)
     uint32_t composOffset = 0;
 
     std::shared_ptr<const Mp4BoxData> getData() override
     {
         auto res = Mp4BoxData::createArrayData();
-        res->arrayAddItem(duration)->arrayAddItem(size)->arrayAddItem(flags)->arrayAddItem(composOffset);
+        if (boxFlags & MP4_TRUN_FLAG_SAMPLE_DURATION_PRESENT)
+            res->arrayAddItem(duration);
+        if (boxFlags & MP4_TRUN_FLAG_SAMPLE_SIZE_PRESENT)
+            res->arrayAddItem(size);
+        if (boxFlags & MP4_TRUN_FLAG_SAMPLE_FLAGS_PRESENT)
+            res->arrayAddItem(flags);
+        if (boxFlags & MP4_TRUN_FLAG_SAMPLE_COMPOSITION_TIME_OFFSETS_PRESENT)
+            res->arrayAddItem(composOffset);
         return res;
     }
     std::shared_ptr<const Mp4BoxData> getData(uint64_t dataIdx) override
     {
-        switch (dataIdx)
+        int idx = -1;
+        if (boxFlags & MP4_TRUN_FLAG_SAMPLE_DURATION_PRESENT)
         {
-            case 0:
+            idx++;
+            if (idx == dataIdx)
                 return Mp4BoxData::createBasicData(duration);
-            case 1:
-                return Mp4BoxData::createBasicData(size);
-            case 2:
-                return Mp4BoxData::createBasicData(flags);
-            case 3:
-                return Mp4BoxData::createBasicData(composOffset);
-            default:
-                return nullptr;
         }
+
+        if (boxFlags & MP4_TRUN_FLAG_SAMPLE_SIZE_PRESENT)
+        {
+            idx++;
+            if (idx == dataIdx)
+                return Mp4BoxData::createBasicData(size);
+        }
+
+        if (boxFlags & MP4_TRUN_FLAG_SAMPLE_FLAGS_PRESENT)
+        {
+            idx++;
+            if (idx == dataIdx)
+                return Mp4BoxData::createBasicData(flags);
+        }
+        if (boxFlags & MP4_TRUN_FLAG_SAMPLE_COMPOSITION_TIME_OFFSETS_PRESENT)
+        {
+            idx++;
+            if (idx == dataIdx)
+                return Mp4BoxData::createBasicData(composOffset);
+        }
+
+        return nullptr;
     }
 
     void setColumnsName(std::shared_ptr<Mp4BoxData> src) override
     {
-        src->setColumnsName("Duration", "Size", "Flags", "Sample Composition Time Offset");
+        if (boxFlags & MP4_TRUN_FLAG_SAMPLE_DURATION_PRESENT)
+            src->tableAddColumn("Duration");
+        if (boxFlags & MP4_TRUN_FLAG_SAMPLE_SIZE_PRESENT)
+            src->tableAddColumn("Size");
+        if (boxFlags & MP4_TRUN_FLAG_SAMPLE_FLAGS_PRESENT)
+            src->tableAddColumn("Flags");
+        if (boxFlags & MP4_TRUN_FLAG_SAMPLE_COMPOSITION_TIME_OFFSETS_PRESENT)
+            src->tableAddColumn("Sample Composition Time Offset");
     }
 };
 struct TrackRunBox : public SampleTableBox
 {
+    // if (mFullboxFlags & MP4_TRUN_FLAG_DATA_OFFSET_PRESENT)
     int32_t  dataOffset       = 0;
+    // if (mFullboxFlags & MP4_TRUN_FLAG_FIRST_SAMPLE_FLAGS_PRESENT)
     uint32_t firstSampleFlags = 0;
 
     TrackRunBox() : SampleTableBox("trun") {}
