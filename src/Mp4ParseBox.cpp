@@ -1373,10 +1373,10 @@ CommonBoxPtr MP4ParserImpl::parseBox(BinaryFileReader &reader, CommonBoxPtr pare
     {
         MP4_INFO("parse sub boxes for %s done\n", boxType2Str(curBox->mBoxType).c_str());
 
-        printf("\n\n %s(0x%" PRIu64 ") have subBoxes:\n", boxType2Str(curBox->mBoxType).c_str(), curBox->mBoxOffset);
+        MP4_INFO("\n\n %s(0x%" PRIu64 ") have subBoxes:\n", boxType2Str(curBox->mBoxType).c_str(), curBox->mBoxOffset);
         for (auto &subBox : curBox->mContainBoxes)
         {
-            printf("  %s(0x%" PRIu64 ")\n", boxType2Str(subBox->mBoxType).c_str(), subBox->mBoxOffset);
+            MP4_INFO("  %s(0x%" PRIu64 ")\n", boxType2Str(subBox->mBoxType).c_str(), subBox->mBoxOffset);
         }
     }
 
