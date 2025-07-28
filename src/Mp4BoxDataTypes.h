@@ -135,6 +135,7 @@ public:
     {
         assert(MP4_BOX_DATA_TYPE_KEY_VALUE_PAIRS == mObjectType);
         MP4_UNUSED(key);
+        MP4_UNUSED(val);
         return shared_from_this();
     }
 
