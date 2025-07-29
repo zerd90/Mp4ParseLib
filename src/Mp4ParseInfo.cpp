@@ -1319,7 +1319,8 @@ std::shared_ptr<Mp4BoxData> Mp4MediaInfo::getData(std::shared_ptr<Mp4BoxData> sr
     item->kvAddPair("Duration(ms)", durationMs)
         ->kvAddPair("Sample Count", sampleCount)
         ->kvAddPair("Codec", mp4GetCodecName(codecCode))
-        ->kvAddPair("Media Type", mp4GetMediaTypeName(mediaType));
+        ->kvAddPair("Media Type", mp4GetMediaTypeName(mediaType))
+        ->kvAddPair("Avg Bitrate(kbps)", avgBitrate / 1024.f);
 
     return item;
 }
