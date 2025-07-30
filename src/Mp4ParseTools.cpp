@@ -15,10 +15,13 @@ static const char *gWeekString[7] = {"MON", "TUE", "WED", "THU", "FRI", "SAT", "
 
 string getTimeString(time_t utcTime) // based on 1904
 {
+    utcTime -= 2082844800; // 1904 - 1970
     auto tm = gmtime(&utcTime);
+    if (!tm)
+        return "1904-01-01 00:00:00 FRI";
     char buf[64];
-    snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d %s", tm->tm_year + 1900 - 66 /* 1970-1904 */,
-             tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec, gWeekString[tm->tm_wday]);
+    snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d %s", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour,
+             tm->tm_min, tm->tm_sec, gWeekString[tm->tm_wday]);
     return buf;
 }
 
