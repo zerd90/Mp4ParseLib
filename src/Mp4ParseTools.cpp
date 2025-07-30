@@ -11,7 +11,7 @@
 namespace fs = std::filesystem;
 using std::string;
 
-static const char *gWeekString[7] = {"MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"};
+static const char *gWeekString[7] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
 
 string getTimeString(time_t utcTime) // based on 1904
 {
