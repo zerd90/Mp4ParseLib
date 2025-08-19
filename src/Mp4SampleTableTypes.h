@@ -20,9 +20,9 @@ struct SampleTableBox : public FullBox
 
     explicit SampleTableBox(const char *boxTypeStr) : FullBox(boxTypeStr), entryCount(0) {}
     template <typename _T>
-    std::shared_ptr<_T> getEntry(uint64_t idx)
+    _T *getEntry(uint64_t idx)
     {
-        return std::dynamic_pointer_cast<_T>(entries[idx]);
+        return (_T*)(entries[idx].get());
     }
 
     std::shared_ptr<Mp4BoxData> getData(std::shared_ptr<Mp4BoxData> src = nullptr) const override;

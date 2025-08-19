@@ -49,14 +49,14 @@ void generateResultTable(Mp4ParserHandle mp4_info, string dirPath)
             break;
         }
 
-        trackInfoFile
-            << "sampleIdx, offset, offset(hex), size, size(hex), pts(ms), dts(ms), dts_delta(ms), frame_type, nalu_type, isKeyFrame,"
-               ",chunk_idx, offset, offset(hex), size, size(hex), sample_start, sampleCount, start_pts(ms), delta(ms), avg_bitrate(Kbps)"
-            << std::endl;
+        trackInfoFile << "sampleIdx, offset, offset(hex), size, size(hex), pts(ms), dts(ms), dts_delta(ms), frame_type, "
+                         "nalu_type, isKeyFrame,"
+                         ",chunk_idx, offset, offset(hex), size, size(hex), sample_start, sampleCount, start_pts(ms), delta(ms), "
+                         "avg_bitrate(Kbps)"
+                      << std::endl;
         for (unsigned int j = 0; j < curTrackMedia->samplesInfo.size(); j++)
         {
-            trackInfoFile << curTrackMedia->samplesInfo[j].sampleIdx << ","
-                          << curTrackMedia->samplesInfo[j].sampleOffset << ","
+            trackInfoFile << curTrackMedia->samplesInfo[j].sampleIdx << "," << curTrackMedia->samplesInfo[j].sampleOffset << ","
                           << "0x" << std::hex << curTrackMedia->samplesInfo[j].sampleOffset << std::dec << ","
                           << curTrackMedia->samplesInfo[j].sampleSize << ","
                           << "0x" << std::hex << curTrackMedia->samplesInfo[j].sampleSize << std::dec << ","
@@ -64,7 +64,7 @@ void generateResultTable(Mp4ParserHandle mp4_info, string dirPath)
                           << curTrackMedia->samplesInfo[j].dtsDeltaMs << ", ";
             auto codecType = mp4GetCodecType(curTrackMedia->codecCode);
             trackInfoFile << mp4GetFrameTypeStr(curTrackMedia->samplesInfo[j].frameType) << ", ";
-            for (int naluIdx = 0; naluIdx < curTrackMedia->samplesInfo[j].naluTypes.size(); naluIdx++)
+            for (size_t naluIdx = 0; naluIdx < curTrackMedia->samplesInfo[j].naluTypes.size(); naluIdx++)
             {
                 trackInfoFile << mp4GetNaluTypeStr(codecType, curTrackMedia->samplesInfo[j].naluTypes[naluIdx]);
                 if (naluIdx < curTrackMedia->samplesInfo[j].naluTypes.size() - 1)
@@ -80,11 +80,9 @@ void generateResultTable(Mp4ParserHandle mp4_info, string dirPath)
                               << "0x" << std::hex << curTrackMedia->chunksInfo[j].chunkOffset << std::dec << ","
                               << (unsigned int)curTrackMedia->chunksInfo[j].chunkSize << ","
                               << "0x" << std::hex << curTrackMedia->chunksInfo[j].chunkSize << std::dec << ","
-                              << curTrackMedia->chunksInfo[j].sampleStartIdx << ","
-                              << curTrackMedia->chunksInfo[j].sampleCount << ","
-                              << curTrackMedia->chunksInfo[j].startPtsMs << ","
-                              << curTrackMedia->chunksInfo[j].durationMs << ","
-                              << curTrackMedia->chunksInfo[j].avgBitrateBps / 1024.;
+                              << curTrackMedia->chunksInfo[j].sampleStartIdx << "," << curTrackMedia->chunksInfo[j].sampleCount
+                              << "," << curTrackMedia->chunksInfo[j].startPtsMs << "," << curTrackMedia->chunksInfo[j].durationMs
+                              << "," << curTrackMedia->chunksInfo[j].avgBitrateBps / 1024.;
             }
 
             trackInfoFile << std::endl;
@@ -105,6 +103,12 @@ int main(int argc, char **argv)
     int fileIdx;
 
     Mp4ParserHandle mp4Parser = createMp4Parser();
+    setMp4ParseLogCallback(
+        [](MP4_LOG_LEVEL_E logLevel, const char *logBuffer)
+        {
+            if (logLevel <= MP4_LOG_LEVEL_INFO)
+                printf("%s", logBuffer);
+        });
 
     for (fileIdx = 1; fileIdx < argc; ++fileIdx)
     {
@@ -148,7 +152,7 @@ int main(int argc, char **argv)
         string   outDirPath = dirPath + "/" + baseName;
 
         auto tracksInfo = mp4Parser->getTracksInfo();
-        for (int i = 0; i < tracksInfo.size(); i++)
+        for (uint32_t i = 0; i < tracksInfo.size(); i++)
         {
             if (TRACK_TYPE_VIDEO != tracksInfo[i]->trackType)
                 continue;
@@ -157,7 +161,7 @@ int main(int argc, char **argv)
                 continue;
             for (uint32_t sampleIdx = 0; sampleIdx < tracksInfo[i]->mediaInfo->samplesInfo.size(); sampleIdx++)
             {
-                int frameType = mp4Parser->parseVideoNaluType(i, sampleIdx);
+                [[maybe_unused]] int frameType = mp4Parser->parseVideoNaluType(i, sampleIdx);
             }
         }
 
