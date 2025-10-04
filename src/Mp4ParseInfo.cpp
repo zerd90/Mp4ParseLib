@@ -248,8 +248,7 @@ int hevcParseSps(uint8_t *buffer, uint32_t size, uint32_t &picWidthInLumaSamples
     return 0;
 }
 
-int hevcParsePps(uint8_t *buffer, uint32_t size, uint8_t &dependentSliceSegmentsEnabledFlag,
-                 uint8_t &numExtraSliceHeaderBits)
+int hevcParsePps(uint8_t *buffer, uint32_t size, uint8_t &dependentSliceSegmentsEnabledFlag, uint8_t &numExtraSliceHeaderBits)
 {
     BitsReader ppsBits(buffer, size);
 
@@ -417,9 +416,8 @@ H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t 
                 if (H265_NALU_TRAIL_N == naluType || H265_NALU_TRAIL_R == naluType || H265_NALU_TSA_N == naluType
                     || H265_NALU_TSA_R == naluType || H265_NALU_STSA_N == naluType || H265_NALU_STSA_R == naluType
                     || H265_NALU_RADL_N == naluType || H265_NALU_RADL_R == naluType || H265_NALU_RASL_N == naluType
-                    || H265_NALU_RASL_R == naluType || H265_NALU_BLA_W_LP == naluType
-                    || H265_NALU_BLA_W_RADL == naluType || H265_NALU_BLA_N_LP == naluType
-                    || H265_NALU_CRA_NUT == naluType) // a picture slice
+                    || H265_NALU_RASL_R == naluType || H265_NALU_BLA_W_LP == naluType || H265_NALU_BLA_W_RADL == naluType
+                    || H265_NALU_BLA_N_LP == naluType || H265_NALU_CRA_NUT == naluType) // a picture slice
                 {
                     mFileReader.read(nullptr, 1); // H265 Nalu Header is 2 bytes
                     data.create(16);
@@ -528,8 +526,7 @@ int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
                     continue;
                 }
                 pps.create(hvcC->HEVCConfig.arrays[i].nalus[0].length);
-                memcpy(pps.ptr(), hvcC->HEVCConfig.arrays[i].nalus[0].data.ptr(),
-                       hvcC->HEVCConfig.arrays[i].nalus[0].length);
+                memcpy(pps.ptr(), hvcC->HEVCConfig.arrays[i].nalus[0].data.ptr(), hvcC->HEVCConfig.arrays[i].nalus[0].length);
             }
             else if (H265_NALU_SPS == hvcC->HEVCConfig.arrays[i].naluType)
             {
@@ -539,8 +536,7 @@ int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
                     continue;
                 }
                 sps.create(hvcC->HEVCConfig.arrays[i].nalus[0].length);
-                memcpy(sps.ptr(), hvcC->HEVCConfig.arrays[i].nalus[0].data.ptr(),
-                       hvcC->HEVCConfig.arrays[i].nalus[0].length);
+                memcpy(sps.ptr(), hvcC->HEVCConfig.arrays[i].nalus[0].data.ptr(), hvcC->HEVCConfig.arrays[i].nalus[0].length);
             }
         }
     }
@@ -559,9 +555,8 @@ int MP4ParserImpl::generateInfoTable(uint32_t trackIdx)
     }
     if (sps.length > 0)
     {
-        if (hevcParseSps(sps.ptr(), (uint32_t)sps.length, mHevcSPSInfo.picWidthInLumaSamples,
-                         mHevcSPSInfo.picHeightInLumaSamples, mHevcSPSInfo.log2MinLumaCodingBlockSizeMinus3,
-                         mHevcSPSInfo.log2DiffMaxMinLumaCodingBlockSize)
+        if (hevcParseSps(sps.ptr(), (uint32_t)sps.length, mHevcSPSInfo.picWidthInLumaSamples, mHevcSPSInfo.picHeightInLumaSamples,
+                         mHevcSPSInfo.log2MinLumaCodingBlockSizeMinus3, mHevcSPSInfo.log2DiffMaxMinLumaCodingBlockSize)
             < 0)
         {
             MP4_PARSE_ERR("hevcParseSps failed\n");
@@ -687,6 +682,8 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
 
     uint64_t chunkStart = 0;
 
+    unsigned int stscItemIdx    = 0;
+    unsigned int stscEntryCount = stsc->entryCount;
     for (unsigned int chunkIdx = 0; chunkIdx < chunkCount; ++chunkIdx)
     {
         Mp4ChunkItem curChunk;
@@ -695,7 +692,7 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
             curChunk.chunkOffset = stco->getEntry<stcoItem>(chunkIdx)->chunkOffset;
         else
             curChunk.chunkOffset = co64->getEntry<co64Item>(chunkIdx)->chunkOffset;
-        for (unsigned int j = 0, jm = stsc->entryCount; j < jm; j++)
+        for (unsigned int j = stscItemIdx, jm = stscEntryCount; j < jm; j++)
         {
             if (chunkIdx + 1 >= stsc->getEntry<stscItem>(j)->firstChunk
                 && (j == jm - 1 || chunkIdx + 1 < stsc->getEntry<stscItem>(j + 1)->firstChunk))
@@ -703,6 +700,7 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
                 curChunk.sampleCount    = stsc->getEntry<stscItem>(j)->sampleCount;
                 curChunk.sampleStartIdx = chunkStart;
                 chunkStart += curChunk.sampleCount;
+                stscItemIdx = j;
                 break;
             }
         }
@@ -731,8 +729,7 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
 
     for (unsigned int i = 0; i < sampleCount; ++i)
     {
-        if (i >= trackMediaInfo->chunksInfo[curChunkIdx].sampleStartIdx
-                     + trackMediaInfo->chunksInfo[curChunkIdx].sampleCount)
+        if (i >= trackMediaInfo->chunksInfo[curChunkIdx].sampleStartIdx + trackMediaInfo->chunksInfo[curChunkIdx].sampleCount)
         {
             curChunkIdx++;
             sampleOffset = trackMediaInfo->chunksInfo[curChunkIdx].chunkOffset;
@@ -1016,8 +1013,8 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
 
             curSample.dtsMs = sampleDts;
 
-            curSample.dtsDeltaMs = fragmentGetSampleDuration(pTrexBoxes[trackIdx], pTfhdBox, pTrunBox, sampleIdx) * 1000
-                                 / pMdhdBox->timescale;
+            curSample.dtsDeltaMs =
+                fragmentGetSampleDuration(pTrexBoxes[trackIdx], pTfhdBox, pTrunBox, sampleIdx) * 1000 / pMdhdBox->timescale;
 
             sampleDts += curSample.dtsDeltaMs;
 
