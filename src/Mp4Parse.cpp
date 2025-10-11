@@ -690,7 +690,8 @@ std::shared_ptr<Mp4BoxData> Mp4VideoInfo::getData(std::shared_ptr<Mp4BoxData> sr
     item->kvAddPair("Profile", getProfileString(profile))
         ->kvAddPair("Level", level)
         ->kvAddPair("Width", width)
-        ->kvAddPair("Height", height);
+        ->kvAddPair("Height", height)
+        ->kvAddPair("Frame Rate", avgFps);
 
     return item;
 }
