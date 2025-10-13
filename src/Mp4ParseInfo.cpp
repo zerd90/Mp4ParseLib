@@ -334,6 +334,8 @@ H26X_FRAME_TYPE_E MP4ParserImpl::parseVideoNaluType(uint32_t trackIdx, uint64_t 
 
     uint16_t naluLenSize = it->second;
 
+    std::unique_lock<std::mutex> locker(mFileMutex);
+
     Mp4SampleItem *curSample = &mp4TrackInfo->mediaInfo->samplesInfo[sampleIdx];
     uint64_t       oldPos    = mFileReader.getCursorPos();
     mFileReader.setCursor(curSample->sampleOffset);

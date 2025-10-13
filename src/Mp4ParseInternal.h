@@ -2,6 +2,7 @@
 #define MP4_PARSE_INTERNAL_H
 
 #include <map>
+#include <mutex>
 #include <queue>
 #include <inttypes.h>
 #include "Mp4SampleTableTypes.h"
@@ -134,6 +135,7 @@ private:
 
 private:
     BinaryFileReader mFileReader;
+    std::mutex       mFileMutex;
 
     std::queue<std::string> mErrors;
 

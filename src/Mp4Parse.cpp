@@ -161,6 +161,8 @@ int MP4ParserImpl::parse(string filepath)
     if (ret < 0)
         return ret;
 
+    std::unique_lock<std::mutex> locker(mFileMutex);
+
     while (mFileReader.getCursorPos() < mFileReader.getFileSize())
     {
         bool         parseErr = false;
@@ -170,6 +172,8 @@ int MP4ParserImpl::parse(string filepath)
 
         mContainBoxes.push_back(curBox);
     }
+
+    locker.unlock();
 
     mMp4Type = MP4_TYPE_ISO;
     if (getSubBoxRecursive<CommonBox>("moof") != nullptr || getSubBoxRecursive<CommonBox>("mvex") != nullptr)
@@ -356,6 +360,8 @@ int MP4ParserImpl::getSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4RawSample
 
     outSample.sampleData = shared_ptr<uint8_t[]>(new uint8_t[outSample.dataSize]);
 
+    std::unique_lock<std::mutex> locker(mFileMutex);
+
     mFileReader.readAt(outSample.fileOffset, outSample.sampleData.get(), outSample.sampleSize);
     return 0;
 }
@@ -473,6 +479,8 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
         memcpy(frameData + copyPos, naluAttach[i].ptr(), naluAttach[i].length);
         copyPos += naluAttach[i].length;
     }
+
+    std::unique_lock<std::mutex> locker(mFileMutex);
 
     uint64_t pos = mFileReader.getCursorPos();
     mFileReader.setCursor(samplePos);
@@ -631,6 +639,7 @@ int MP4ParserImpl::getAudioSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4Audi
     writeAdts(outFrame.sampleData.get(), audioInfo->codecCode, outFrame.sampleSize, audioInfo->audioSampleRate,
               audioInfo->channels);
 
+    std::unique_lock<std::mutex> locker(mFileMutex);
     mFileReader.readAt(outFrame.fileOffset, outFrame.sampleData.get() + ADTS_HEAD_SIZE, outFrame.sampleSize);
 
     outFrame.mediaType       = MP4_MEDIA_TYPE_AUDIO;
@@ -705,9 +714,7 @@ std::shared_ptr<Mp4BoxData> Mp4AudioInfo::getData(std::shared_ptr<Mp4BoxData> sr
 
     Mp4MediaInfo::getData(item);
 
-    item->kvAddPair("Channels", channels)
-        ->kvAddPair("Sample Rate", audioSampleRate)
-        ->kvAddPair("Sample Size", audioSampleSize);
+    item->kvAddPair("Channels", channels)->kvAddPair("Sample Rate", audioSampleRate)->kvAddPair("Sample Size", audioSampleSize);
 
     return item;
 }
@@ -768,8 +775,7 @@ std::shared_ptr<Mp4BoxData> MP4ParserImpl::getData(std::shared_ptr<Mp4BoxData> s
 
     for (auto &Mp4TrackInfo : tracksInfo)
     {
-        auto trackInfoItem =
-            item->kvAddKey("Track " + std::to_string(Mp4TrackInfo->trackId), MP4_BOX_DATA_TYPE_KEY_VALUE_PAIRS);
+        auto trackInfoItem = item->kvAddKey("Track " + std::to_string(Mp4TrackInfo->trackId), MP4_BOX_DATA_TYPE_KEY_VALUE_PAIRS);
         Mp4TrackInfo->getData(trackInfoItem);
     }
 
@@ -777,6 +783,8 @@ std::shared_ptr<Mp4BoxData> MP4ParserImpl::getData(std::shared_ptr<Mp4BoxData> s
 }
 float MP4ParserImpl::getParseProgress() const
 {
+    std::unique_lock<std::mutex> locker(const_cast<std::mutex&>(mFileMutex));
+
     if (!mFileReader.isOpened() || 0 == mFileReader.getFileSize())
         return 1.f;
 
