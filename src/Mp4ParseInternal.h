@@ -14,35 +14,35 @@
 #define set_zero_st(st) memset(&st, 0, sizeof(st))
 #define ARRAY_SIZE(ar)  (sizeof(ar) / sizeof(*(ar)))
 
-#define BOX_PARSE_BEGIN()                                                                                  \
-    mBoxOffset    = boxPosition;                                                                           \
-    mBoxSize      = boxSize;                                                                               \
-    mBodyPos      = reader.getCursorPos();                                                                 \
-    mBodySize     = boxBodySize;                                                                           \
-    uint64_t last = reader.getCursorPos() + boxBodySize;                                                   \
-    if (last > reader.getFileSize())                                                                       \
-    {                                                                                                      \
-        MP4_ERR("size err %" PRIu64 " + %" PRIu64 " = %" PRIu64 " > %" PRIu64 "\n", reader.getCursorPos(), \
-                boxBodySize, last, reader.getFileSize());                                                  \
-        return -1;                                                                                         \
-    }                                                                                                      \
-    if (mIsFullbox)                                                                                        \
-    {                                                                                                      \
-        CHECK_RET(read_fullbox_version_flags(reader, &mFullboxVersion, &mFullboxFlags));                   \
+#define BOX_PARSE_BEGIN()                                                                                                     \
+    mBoxOffset    = boxPosition;                                                                                              \
+    mBoxSize      = boxSize;                                                                                                  \
+    mBodyPos      = reader.getCursorPos();                                                                                    \
+    mBodySize     = boxBodySize;                                                                                              \
+    uint64_t last = reader.getCursorPos() + boxBodySize;                                                                      \
+    if (last > reader.getFileSize())                                                                                          \
+    {                                                                                                                         \
+        MP4_ERR("size err %" PRIu64 " + %" PRIu64 " = %" PRIu64 " > %" PRIu64 "\n", reader.getCursorPos(), boxBodySize, last, \
+                reader.getFileSize());                                                                                        \
+        return -1;                                                                                                            \
+    }                                                                                                                         \
+    if (mIsFullbox)                                                                                                           \
+    {                                                                                                                         \
+        CHECK_RET(read_fullbox_version_flags(reader, &mFullboxVersion, &mFullboxFlags));                                      \
     }
 
-#define BOX_PARSE_END()                                                                                                \
-    if (reader.getCursorPos() < last)                                                                                  \
-    {                                                                                                                  \
-        MP4_DBG("%s not end, remain %" PRIu64 " Bytes from %#06" PRIx64 "\n", getBoxTypeStr().c_str(), last - reader.getCursorPos(), \
-                reader.getCursorPos());                                                                                \
-        return 1;                                                                                                      \
-    }                                                                                                                  \
-    else if (reader.getCursorPos() > last)                                                                             \
-    {                                                                                                                  \
-        MP4_ERR("parse err %" PRIu64 " > %" PRIu64 "\n", reader.getCursorPos(), last);                                               \
-        reader.setCursor(last);                                                                                        \
-        return -1;                                                                                                     \
+#define BOX_PARSE_END()                                                                                \
+    if (reader.getCursorPos() < last)                                                                  \
+    {                                                                                                  \
+        MP4_DBG("%s not end, remain %" PRIu64 " Bytes from %#06" PRIx64 "\n", getBoxTypeStr().c_str(), \
+                last - reader.getCursorPos(), reader.getCursorPos());                                  \
+        return 1;                                                                                      \
+    }                                                                                                  \
+    else if (reader.getCursorPos() > last)                                                             \
+    {                                                                                                  \
+        MP4_ERR("parse err %" PRIu64 " > %" PRIu64 "\n", reader.getCursorPos(), last);                 \
+        reader.setCursor(last);                                                                        \
+        return -1;                                                                                     \
     }
 
 /*
@@ -89,7 +89,7 @@ public:
 
     virtual MP4_TYPE_E  getMp4Type() const override { return mMp4Type; }
     virtual std::string getFilePath() const override { return mFileReader.getFileFullPath(); }
-    virtual float       getParseProgress() const override;
+    virtual float       getParseProgress() override;
 
     const std::vector<Mp4BoxPtr> getBoxes() const override;
 
@@ -117,13 +117,13 @@ public:
 
 private:
     CommonBoxPtr parseBox(BinaryFileReader &reader, CommonBoxPtr parentBox, bool &parseErr);
-    uint32_t     fragmentGetSampleFlags(TrackExtendsBoxPtr pTrexBox, TrackFragmentHeaderBoxPtr pTfhdBox,
-                                        TrackRunBoxPtr pTrunBox, uint64_t sampleIdx);
-    uint32_t     fragmentGetSampleSize(TrackExtendsBoxPtr pTrexBox, TrackFragmentHeaderBoxPtr pTfhdBox,
-                                       TrackRunBoxPtr pTrunBox, uint64_t sampleIdx);
-    uint32_t     fragmentGetSampleDuration(TrackExtendsBoxPtr pTrexBox, TrackFragmentHeaderBoxPtr pTfhdBox,
-                                           TrackRunBoxPtr pTrunBox, uint64_t sampleIdx);
-    uint32_t     fragmentGetSampleCompositionOffset(TrackRunBoxPtr pTrunBox, uint64_t sampleIdx);
+    uint32_t     fragmentGetSampleFlags(TrackExtendsBoxPtr pTrexBox, TrackFragmentHeaderBoxPtr pTfhdBox, TrackRunBoxPtr pTrunBox,
+                                        uint64_t sampleIdx);
+    uint32_t     fragmentGetSampleSize(TrackExtendsBoxPtr pTrexBox, TrackFragmentHeaderBoxPtr pTfhdBox, TrackRunBoxPtr pTrunBox,
+                                       uint64_t sampleIdx);
+    uint32_t fragmentGetSampleDuration(TrackExtendsBoxPtr pTrexBox, TrackFragmentHeaderBoxPtr pTfhdBox, TrackRunBoxPtr pTrunBox,
+                                       uint64_t sampleIdx);
+    uint32_t fragmentGetSampleCompositionOffset(TrackRunBoxPtr pTrunBox, uint64_t sampleIdx);
 
     int generateInfoTable(uint32_t trackIdx);
     int generateIsoSamplesInfoTable(uint64_t trackIdx);

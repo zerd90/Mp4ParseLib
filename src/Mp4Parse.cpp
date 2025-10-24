@@ -377,6 +377,14 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
     uint64_t       samplePos  = pCurSample->sampleOffset;
     uint64_t       sampleSize = pCurSample->sampleSize;
     bool           attachNalu = false;
+
+    if (samplePos + sampleSize > mFileReader.getFileSize())
+    {
+        MP4_PARSE_ERR("sample pos %" PRIu64 " + size %" PRIu64 " out of file size %" PRIu64 "\n", samplePos, sampleSize,
+                      mFileReader.getFileSize());
+        return -1;
+    }
+
     if (pCurSample->isKeyFrame > 0)
     {
         attachNalu = true;
@@ -517,7 +525,7 @@ int MP4ParserImpl::getVideoSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4Vide
     auto codecType = mp4GetCodecType(tracksInfo[trackIdx]->mediaInfo->codecCode);
     if (MP4_CODEC_H264 == codecType || MP4_CODEC_HEVC == codecType)
     {
-        getH26xFrame(trackIdx, sampleIdx, outFrame);
+        return getH26xFrame(trackIdx, sampleIdx, outFrame);
     }
     else
     {
@@ -527,8 +535,18 @@ int MP4ParserImpl::getVideoSample(uint32_t trackIdx, uint32_t sampleIdx, Mp4Vide
         TrackHeaderBoxPtr    tkhd        = pCurTrakBox->getSubBox<TrackHeaderBox>("tkhd");
 
         Mp4SampleItem *curSample = &tracksInfo[trackIdx]->mediaInfo->samplesInfo[sampleIdx];
-
-        getSample(trackIdx, sampleIdx, outFrame);
+        if (curSample->sampleOffset + curSample->sampleSize > mFileReader.getFileSize())
+        {
+            MP4_PARSE_ERR("sample pos %" PRIu64 " + size %" PRIu64 " out of file size %" PRIu64 "\n", curSample->sampleOffset,
+                          curSample->sampleSize, mFileReader.getFileSize());
+            return -1;
+        }
+        int ret = getSample(trackIdx, sampleIdx, outFrame);
+        if (ret < 0)
+        {
+            MP4_PARSE_ERR("get sample fail trackIdx %" PRIu32 " sampleIdx %" PRIu32 "\n", trackIdx, sampleIdx);
+            return -1;
+        }
 
         outFrame.mediaType             = MP4_MEDIA_TYPE_VIDEO;
         outFrame.codec                 = mp4GetCodecType(tracksInfo[trackIdx]->mediaInfo->codecCode);
@@ -781,9 +799,9 @@ std::shared_ptr<Mp4BoxData> MP4ParserImpl::getData(std::shared_ptr<Mp4BoxData> s
 
     return item;
 }
-float MP4ParserImpl::getParseProgress() const
+float MP4ParserImpl::getParseProgress()
 {
-    std::unique_lock<std::mutex> locker(const_cast<std::mutex&>(mFileMutex));
+    std::unique_lock<std::mutex> locker(mFileMutex);
 
     if (!mFileReader.isOpened() || 0 == mFileReader.getFileSize())
         return 1.f;

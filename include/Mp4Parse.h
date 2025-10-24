@@ -17,9 +17,9 @@ public:
     virtual bool        isParseSuccess() const = 0;
     virtual std::string getErrorMessage()      = 0;
 
-    virtual std::string getFilePath() const      = 0;
-    virtual float       getParseProgress() const = 0;
-    virtual MP4_TYPE_E  getMp4Type() const       = 0;
+    virtual std::string getFilePath() const = 0;
+    virtual float       getParseProgress()  = 0;
+    virtual MP4_TYPE_E  getMp4Type() const  = 0;
 
     virtual Mp4BoxPtr   asBox() const              = 0; // for more convenient box recursion
     virtual std::string getBasicInfoString() const = 0;
@@ -44,7 +44,8 @@ Mp4ParserHandle                    createMp4Parser();
 using BoxParseFunc = std::function<int(uint8_t *data, uint64_t dataSize, void *userData)>;
 // pData is the same as the one in BoxParseFunc;
 using BoxDataFunc  = std::function<std::shared_ptr<Mp4BoxData>(void *userData)>;
-void registerUdtaCallback(uint8_t uuid[MP4_UUID_LEN], BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback, void *userData);
+void registerUdtaCallback(uint8_t uuid[MP4_UUID_LEN], BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback,
+                          void *userData);
 void registerBoxCallback(Mp4BoxType boxType, BoxParseFunc parseDataCallback, BoxDataFunc getDataCallback, void *userData);
 
 void defaultLogCallback(MP4_LOG_LEVEL_E logLevel, const char *logBuffer);
