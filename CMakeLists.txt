@@ -20,7 +20,7 @@ else()
 	)
 endif()
 
-option(BUILD_SAMPLES "Build MP4 Parse Sample Programs" OFF)
+option(BUILD_SAMPLES "Build MP4 Parse Sample Programs" ON)
 
 file(GLOB SRC_LIST
 	"src/*.cpp"

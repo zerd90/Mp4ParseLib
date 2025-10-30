@@ -1327,7 +1327,8 @@ CommonBoxPtr MP4ParserImpl::parseBox(BinaryFileReader &reader, CommonBoxPtr pare
     }
     while (reader.getCursorPos() < curBox->mBodyPos + curBox->mBodySize)
     {
-        CommonBoxPtr subBox = parseBox(reader, curBox, parseErr);
+        bool subBoxError = false;
+        CommonBoxPtr subBox = parseBox(reader, curBox, subBoxError);
         if (subBox == nullptr)
         {
             break;
@@ -1339,9 +1340,10 @@ CommonBoxPtr MP4ParserImpl::parseBox(BinaryFileReader &reader, CommonBoxPtr pare
         subBox->mParentBox = curBox;
         curBox->mContainBoxes.push_back(subBox);
 
-        if (parseErr)
+        if (subBoxError)
         {
-            break;
+            MP4_DBG("sub box %s parse fail\n", boxType2Str(subBox->mBoxType).c_str());
+            continue;
         }
 
         if (dynamic_pointer_cast<AudioSampleEntry>(curBox) != nullptr && MP4_BOX_MAKE_TYPE("chnl") == subBox->mBoxType)
