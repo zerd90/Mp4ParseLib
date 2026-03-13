@@ -478,6 +478,12 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
     uint32_t numNaluAttach = (uint32_t)naluAttach.size();
     for (unsigned int i = 0; i < numNaluAttach; ++i)
     {
+        if (copyPos + 4 + naluAttach[i].length > outFrame.dataSize)
+        {
+            MP4_PARSE_ERR("out of data size %" PRIu64 " + 4 + %" PRIu64 " > %" PRIu64 "\n", copyPos, naluAttach[i].length,
+                          outFrame.dataSize);
+            return -1;
+        }
         frameData[copyPos]     = 0;
         frameData[copyPos + 1] = 0;
         frameData[copyPos + 2] = 0;
@@ -497,6 +503,12 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
         uint32_t naluSize = 0;
 
         naluSize = (uint32_t)mFileReader.readUnsigned(lengthSize, true);
+
+        if (copyPos + 4 + naluSize > outFrame.dataSize)
+        {
+            MP4_PARSE_ERR("out of data size %" PRIu64 " + 4 + %" PRIu32 " > %" PRIu64 "\n", copyPos, naluSize, outFrame.dataSize);
+            return -1;
+        }
 
         frameData[copyPos]     = 0;
         frameData[copyPos + 1] = 0;
