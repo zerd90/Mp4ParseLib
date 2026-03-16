@@ -8,9 +8,8 @@
 
 #include "Mp4BoxData.h"
 
-#define MP4_BOX_MAKE_TYPE(type_char)                                                                 \
-    ((uint32_t)(type_char[0] << 24) + (uint32_t)(type_char[1] << 16) + (uint32_t)(type_char[2] << 8) \
-     + (uint32_t)type_char[3])
+#define MP4_BOX_MAKE_TYPE(type_char) \
+    ((uint32_t)(type_char[0] << 24) + (uint32_t)(type_char[1] << 16) + (uint32_t)(type_char[2] << 8) + (uint32_t)type_char[3])
 
 struct Mp4Box
 {
@@ -199,6 +198,9 @@ struct Mp4SampleItem
 
     int isKeyFrame = -1;
 
+    // start from 1
+    uint32_t sampleDescriptionIndex = 1;
+
     uint64_t dtsMs      = 0;
     uint64_t dtsDeltaMs = 0;
 
@@ -218,8 +220,9 @@ struct Mp4ChunkItem
     uint64_t chunkOffset = 0;
     uint64_t chunkSize   = 0;
 
-    uint64_t sampleStartIdx = 0;
-    uint64_t sampleCount    = 0;
+    uint64_t sampleStartIdx         = 0;
+    uint64_t sampleCount            = 0;
+    uint32_t sampleDescriptionIndex = 1;
 
     uint64_t startPtsMs    = 0;
     uint64_t durationMs    = 0;
@@ -288,7 +291,7 @@ struct Mp4RawSample
 {
     uint32_t                   trackIdx   = 0;
     uint64_t                   fileOffset = 0;
-    uint64_t                   sampleSize = 0;// sample size store in mp4 structure
+    uint64_t                   sampleSize = 0; // sample size store in mp4 structure
     uint64_t                   dataSize   = 0; // real data size, may larger than sampleSize since SPS/PPS/VPS attached
     uint64_t                   dtsMs      = 0;
     uint64_t                   ptsMs      = 0;

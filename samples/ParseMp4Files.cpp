@@ -50,7 +50,7 @@ void generateResultTable(Mp4ParserHandle mp4_info, string dirPath)
         }
 
         trackInfoFile << "sampleIdx, offset, offset(hex), size, size(hex), pts(ms), dts(ms), dts_delta(ms), frame_type, "
-                         "nalu_type, isKeyFrame,"
+                         "nalu_type, isKeyFrame, sampleDescriptionIndex,"
                          ",chunk_idx, offset, offset(hex), size, size(hex), sample_start, sampleCount, start_pts(ms), delta(ms), "
                          "avg_bitrate(Kbps)"
                       << std::endl;
@@ -72,7 +72,7 @@ void generateResultTable(Mp4ParserHandle mp4_info, string dirPath)
                     trackInfoFile << "|";
                 }
             }
-            trackInfoFile << ", " << curTrackMedia->samplesInfo[j].isKeyFrame;
+            trackInfoFile << ", " << curTrackMedia->samplesInfo[j].isKeyFrame << ", " << curTrackMedia->samplesInfo[j].sampleDescriptionIndex;
             if (j < curTrackMedia->chunksInfo.size())
             {
                 trackInfoFile << ",," << curTrackMedia->chunksInfo[j].chunkIdx << ","

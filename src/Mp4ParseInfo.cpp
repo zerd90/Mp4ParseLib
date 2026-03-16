@@ -699,8 +699,10 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
             if (chunkIdx + 1 >= stsc->getEntry<stscItem>(j)->firstChunk
                 && (j == jm - 1 || chunkIdx + 1 < stsc->getEntry<stscItem>(j + 1)->firstChunk))
             {
-                curChunk.sampleCount    = stsc->getEntry<stscItem>(j)->sampleCount;
-                curChunk.sampleStartIdx = chunkStart;
+                stscItem *stscEntry             = stsc->getEntry<stscItem>(j);
+                curChunk.sampleCount            = stscEntry->sampleCount;
+                curChunk.sampleDescriptionIndex = stscEntry->sampleDescIdx;
+                curChunk.sampleStartIdx         = chunkStart;
                 chunkStart += curChunk.sampleCount;
                 stscItemIdx = j;
                 break;
@@ -738,6 +740,7 @@ int MP4ParserImpl::generateIsoSamplesInfoTable(uint64_t trackIdx)
         }
         Mp4SampleItem curSample;
         curSample.sampleIdx = i;
+        curSample.sampleDescriptionIndex = trackMediaInfo->chunksInfo[curChunkIdx].sampleDescriptionIndex;
         if (stss != nullptr)
         {
             if (i == nextIframeIdx)

@@ -401,12 +401,21 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
         return -1;
     }
 
+    if (pCurSample->sampleDescriptionIndex - 1 >= stsd->mContainBoxes.size())
+    {
+        MP4_PARSE_ERR("sample description index %d out of range %zu\n", pCurSample->sampleDescriptionIndex,
+                      stsd->mContainBoxes.size());
+        return -1;
+    }
+
+    CommonBoxPtr curSampleEntry = stsd->mContainBoxes[pCurSample->sampleDescriptionIndex - 1];
+
     // TODO：support mutiple smaple entrys in stsd
-    switch (getCompatibleBoxType(stsd->mContainBoxes[0]->mBoxType))
+    switch (getCompatibleBoxType(curSampleEntry->mBoxType))
     {
         case MP4_BOX_MAKE_TYPE("hvc1"):
         {
-            CommonBoxPtr hvc1 = stsd->mContainBoxes[0];
+            CommonBoxPtr hvc1 = curSampleEntry;
 
             HEVCConfigurationBoxPtr hvcC = std::dynamic_pointer_cast<HEVCConfigurationBox>(hvc1->getSubBox("hvcC"));
             if (hvcC == nullptr)
@@ -430,7 +439,7 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
         }
         case MP4_BOX_MAKE_TYPE("avc1"):
         {
-            CommonBoxPtr avc = stsd->mContainBoxes[0];
+            CommonBoxPtr avc = curSampleEntry;
 
             AVCConfigurationBoxPtr avcC = dynamic_pointer_cast<AVCConfigurationBox>(avc->getSubBox("avcC"));
             if (avcC == nullptr)
@@ -464,7 +473,7 @@ int MP4ParserImpl::getH26xFrame(uint32_t trackIdx, uint32_t sampleIdx, Mp4VideoF
             break;
         }
         default:
-            MP4_PARSE_ERR("Unknown type %s\n", boxType2Str(stsd->mContainBoxes[0]->mBoxType).c_str());
+            MP4_PARSE_ERR("Unknown type %s\n", boxType2Str(curSampleEntry->mBoxType).c_str());
             break;
     }
     outFrame.trackIdx = trackIdx;
