@@ -906,8 +906,8 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
     vector<TrackExtendsBoxPtr> pTrexBoxes;
     vector<CommonBoxPtr>       pMoofBoxes;
     vector<CommonBoxPtr>       pTrafBoxes;
+    TrackExtendsBoxPtr         pTrexBox;
     TrackFragmentHeaderBoxPtr  pTfhdBox;
-    TrackRunBoxPtr             pTrunBox;
 
     pMoovBox = getSubBox("moov");
     if (pMoovBox == nullptr)
@@ -948,9 +948,20 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
         MP4_ERR("Get trex fail\n");
         return -1;
     }
-    if (trackIdx >= pTrexBoxes.size())
+
+    const uint32_t targetTrackId = tracksInfo[trackIdx]->trackId;
+    pTrexBox                     = nullptr;
+    for (auto &trex : pTrexBoxes)
     {
-        MP4_ERR("Num of trex err %" PRIu64 " %zu\n", trackIdx, pTrexBoxes.size());
+        if (trex->trackId == targetTrackId)
+        {
+            pTrexBox = trex;
+            break;
+        }
+    }
+    if (pTrexBox == nullptr)
+    {
+        MP4_ERR("No trex for track id %u\n", targetTrackId);
         return -1;
     }
 
@@ -962,7 +973,7 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
     }
 
     uint64_t               totalSampleCount = 0;
-    uint64_t               sampleDts        = 0;
+    uint64_t               nextMediaDts     = 0; // media timescale; used if a fragment has no tfdt
     vector<Mp4SampleItem> &sampleList       = tracksInfo[trackIdx]->mediaInfo->samplesInfo;
 
     for (uint64_t moofIdx = 0, moofCount = pMoofBoxes.size(); moofIdx < moofCount; ++moofIdx)
@@ -973,62 +984,89 @@ int MP4ParserImpl::generateFragmentSamplesInfoTable(uint64_t trackIdx)
             MP4_ERR("Get traf fail\n");
             return -1;
         }
-        if (trackIdx >= pTrafBoxes.size())
+
+        CommonBoxPtr pTrafBox;
+        for (auto &traf : pTrafBoxes)
         {
-            MP4_ERR("Num of traf err %" PRIu64 " %zu\n", trackIdx, pTrafBoxes.size());
+            auto tfhdTry = traf->getSubBox<TrackFragmentHeaderBox>("tfhd");
+            if (tfhdTry != nullptr && tfhdTry->trackId == targetTrackId)
+            {
+                pTrafBox = traf;
+                pTfhdBox = tfhdTry;
+                break;
+            }
+        }
+        if (pTrafBox == nullptr)
+        {
+            continue;
+        }
+
+        vector<TrackRunBoxPtr> pTrunBoxes = pTrafBox->getSubBoxes<TrackRunBox>("trun");
+        if (pTrunBoxes.empty())
+        {
+            MP4_ERR("Get trun fail (track id %u)\n", targetTrackId);
             return -1;
         }
 
-        pTfhdBox = pTrafBoxes[trackIdx]->getSubBox<TrackFragmentHeaderBox>("tfhd");
-        if (pTfhdBox == nullptr)
-        {
-            MP4_ERR("Get tfhd fail\n");
-            return -1;
-        }
+        CommonBoxPtr pMoofBox = pMoofBoxes[moofIdx];
 
-        pTrunBox = pTrafBoxes[trackIdx]->getSubBox<TrackRunBox>("trun");
-        if (pTrunBox == nullptr)
-        {
-            MP4_ERR("Get trun fail\n");
-            return -1;
-        }
-
-        uint64_t fragOffset          = 0;
-        uint64_t fragTotalSampleSize = 0;
-
-        // calculate fragment data offset in file
+        uint64_t fragBase;
         if (pTfhdBox->mFullboxFlags & MP4_TFHD_FLAG_BASE_DATA_OFFSET_PRESENT)
-            fragOffset += pTfhdBox->baseDataOffset;
+            fragBase = pTfhdBox->baseDataOffset;
         else if (pTfhdBox->mFullboxFlags & MP4_TFHD_FLAG_DEFAULT_BASE_IS_MOOF)
-            fragOffset += pMoofBoxes[moofIdx]->mBodyPos;
+            fragBase = pMoofBox->mBoxOffset;
+        else
+            fragBase = pMoofBox->mBoxOffset + pMoofBox->mBoxSize;
 
-        if (pTrunBox->mFullboxFlags & MP4_TRUN_FLAG_DATA_OFFSET_PRESENT)
-            fragOffset += pTrunBox->dataOffset;
+        TrackFragmentBaseMediaDecodeTimeBoxPtr pTfdt =
+            pTrafBox->getSubBox<TrackFragmentBaseMediaDecodeTimeBox>("tfdt");
+        uint64_t curMediaDts = nextMediaDts;
+        if (pTfdt != nullptr)
+            curMediaDts = pTfdt->baseDecTime;
 
-        for (uint64_t sampleIdx = 0, sampleCount = pTrunBox->entryCount; sampleIdx < sampleCount; ++sampleIdx)
+        uint64_t sampleDataCursor = fragBase;
+        bool     firstTrunInTraf  = true;
+
+        for (auto &pTrunBox : pTrunBoxes)
         {
-            Mp4SampleItem curSample;
-            uint32_t      flags = fragmentGetSampleFlags(pTrexBoxes[trackIdx], pTfhdBox, pTrunBox, sampleIdx);
+            if (pTrunBox->mFullboxFlags & MP4_TRUN_FLAG_DATA_OFFSET_PRESENT)
+                sampleDataCursor =
+                    (uint64_t)((int64_t)fragBase + (int64_t)pTrunBox->dataOffset);
+            else if (firstTrunInTraf)
+                sampleDataCursor = fragBase;
 
-            curSample.sampleIdx    = totalSampleCount;
-            curSample.sampleOffset = fragOffset + fragTotalSampleSize;
-            curSample.sampleSize   = fragmentGetSampleSize(pTrexBoxes[trackIdx], pTfhdBox, pTrunBox, sampleIdx);
-            fragTotalSampleSize += curSample.sampleSize;
-            curSample.isKeyFrame = FRAG_IS_IFRAME(flags);
+            firstTrunInTraf = false;
 
-            curSample.dtsMs = sampleDts;
+            uint64_t fragTotalSampleSize = 0;
 
-            curSample.dtsDeltaMs =
-                fragmentGetSampleDuration(pTrexBoxes[trackIdx], pTfhdBox, pTrunBox, sampleIdx) * 1000 / pMdhdBox->timescale;
+            for (uint64_t sampleIdx = 0, sampleCount = pTrunBox->entryCount; sampleIdx < sampleCount; ++sampleIdx)
+            {
+                Mp4SampleItem curSample;
+                uint32_t      flags = fragmentGetSampleFlags(pTrexBox, pTfhdBox, pTrunBox, sampleIdx);
 
-            sampleDts += curSample.dtsDeltaMs;
+                curSample.sampleIdx    = totalSampleCount;
+                curSample.sampleOffset = sampleDataCursor + fragTotalSampleSize;
+                curSample.sampleSize   = fragmentGetSampleSize(pTrexBox, pTfhdBox, pTrunBox, sampleIdx);
+                fragTotalSampleSize += curSample.sampleSize;
+                curSample.isKeyFrame = FRAG_IS_IFRAME(flags);
 
-            curSample.ptsMs =
-                curSample.dtsMs + fragmentGetSampleCompositionOffset(pTrunBox, sampleIdx) * 1000 / pMdhdBox->timescale;
-            sampleList.push_back(curSample);
+                uint32_t durTs =
+                    fragmentGetSampleDuration(pTrexBox, pTfhdBox, pTrunBox, sampleIdx);
+                curSample.dtsMs      = curMediaDts * 1000 / pMdhdBox->timescale;
+                curSample.dtsDeltaMs = durTs * 1000 / pMdhdBox->timescale;
+                curMediaDts += durTs;
 
-            totalSampleCount++;
+                curSample.ptsMs =
+                    curSample.dtsMs + fragmentGetSampleCompositionOffset(pTrunBox, sampleIdx) * 1000 / pMdhdBox->timescale;
+                sampleList.push_back(curSample);
+
+                totalSampleCount++;
+            }
+
+            sampleDataCursor += fragTotalSampleSize;
         }
+
+        nextMediaDts = curMediaDts;
     }
 
     totalSampleCount = sampleList.size();
